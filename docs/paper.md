@@ -117,7 +117,7 @@ while True:
 ```
 
 The live plot is shown in the following figure.
-[Real-time display of processed ad raw EMG signals for a 5-second window.
+![Real-time display of processed (left) and raw (right) EMG signals for a 5-second window.
 \label{fig:emg_plot}](EMG_plot.png)
 
 
