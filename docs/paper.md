@@ -64,8 +64,8 @@ Users can also add an interface module to make 'biosiglive' work with the desire
 Examples are provided to guide the user and documentation is available. 
 
 # Features
-`biosiglive` is divided into five independent modules. The main features are described below.
 
+`biosiglive` is divided into five independent modules. The main features are described below.
  - `Processing`: real-time and offline data processing,
  - `Interfaces`: interfaces of standard software such as Vicon Nexus (Oxford, UK) or Delsys Trigno Community  (Boston, USA),
  - `Visualization`: real-time signal visualization,
