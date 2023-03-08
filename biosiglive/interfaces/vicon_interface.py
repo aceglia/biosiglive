@@ -359,6 +359,8 @@ class ViconClient(GenericInterface):
         """
         if not self.is_initialized:
             raise RuntimeError("Vicon client is not initialized.")
+        if not self.is_frame:
+            raise RuntimeError("No frame has been acquired. Please call get_frame() first.")
         return self.vicon_client.GetFrameNumber()
 
     def get_kinematics_from_markers(

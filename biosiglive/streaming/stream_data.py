@@ -476,6 +476,8 @@ class StreamData:
         self.save_frequency = self.save_frequency if self.save_frequency else self.stream_rate
         interface = self.interfaces[interface_idx]
         saving_time = None
+        frame_number = None
+        last_frame_number = None
         while True:
             data_dic = {}
             proc_device_data = []
@@ -489,106 +491,119 @@ class StreamData:
                 initial_time = time() - tic
             interface_latency = interface.get_latency()
             is_frame = interface.get_frame()
-            absolute_time_frame = datetime.datetime.now()
-            absolute_time_frame_dic = {
-                "day": absolute_time_frame.day,
-                "hour": absolute_time_frame.hour,
-                "hour_s": absolute_time_frame.hour * 3600,
-                "minute": absolute_time_frame.minute,
-                "minute_s": absolute_time_frame.minute * 60,
-                "second": absolute_time_frame.second,
-                "millisecond": int(absolute_time_frame.microsecond / 1000),
-                "millisecond_s": int(absolute_time_frame.microsecond / 1000) * 0.001,
-            }
-            self.is_kin_data.clear()
-            self.is_device_data.clear()
-            if is_frame:
-                if iteration == 0:
-                    print("Data start streaming")
-                    iteration = 1
-                if len(interface.devices) != 0:
-                    all_device_data = interface.get_device_data(device_name="all", get_frame=False)
-                    if not isinstance(all_device_data, list):
-                        all_device_data = [all_device_data]
-                    self.is_device_data.set()
-                    for i in range(len(all_device_data)):
-                        if self.devices[i].processing_method is not None:
-                            self.device_queue_in[i].put_nowait(all_device_data[i])
-                if len(interface.marker_sets) != 0:
-                    all_markers_tmp, _ = interface.get_marker_set_data(get_frame=False)
-                    if not isinstance(all_markers_tmp, list):
-                        all_markers_tmp = [all_markers_tmp]
-                    self.is_kin_data.set()
-                    for i in range(len(self.marker_sets)):
-                        if self.marker_sets[i].kin_method is not None:
-                            self.kin_queue_in[i].put_nowait(all_markers_tmp[i])
-                time_to_get_data = time() - tic
-                tic_process = time()
-                if len(interface.devices) != 0:
-                    for i in range(len(interface.devices)):
-                        if self.devices[i].processing_method is not None:
-                            self.device_event[i].wait()
-                            device_data = self.device_queue_out[i].get_nowait()
-                            self.device_event[i].clear()
-                            proc_device_data.append(
-                                np.around(device_data["processed_data"], decimals=self.device_decimals)
-                            )
-                        raw_device_data.append(np.around(all_device_data[i], decimals=self.device_decimals))
-                    data_dic["proc_device_data"] = proc_device_data
-                    data_dic["raw_device_data"] = raw_device_data
+            if not frame_number:
+                frame_number = interface.get_frame_number()
+            else:
+                last_frame_number = interface.get_frame_number()
+                if not last_frame_number:
+                    last_frame_number = frame_number + 1
+            if last_frame_number == frame_number:
+                pass
+            elif last_frame_number > frame_number + 1:
+                print(f"Frame {frame_number - last_frame_number} lost")
+            else:
+                frame_number = last_frame_number
+                absolute_time_frame = datetime.datetime.now()
+                absolute_time_frame_dic = {
+                    "day": absolute_time_frame.day,
+                    "hour": absolute_time_frame.hour,
+                    "hour_s": absolute_time_frame.hour * 3600,
+                    "minute": absolute_time_frame.minute,
+                    "minute_s": absolute_time_frame.minute * 60,
+                    "second": absolute_time_frame.second,
+                    "millisecond": int(absolute_time_frame.microsecond / 1000),
+                    "millisecond_s": int(absolute_time_frame.microsecond / 1000) * 0.001,
+                }
+                self.is_kin_data.clear()
+                self.is_device_data.clear()
+                if is_frame:
+                    if iteration == 0:
+                        print("Data start streaming")
+                        iteration = 1
+                    if len(interface.devices) != 0:
+                        all_device_data = interface.get_device_data(device_name="all", get_frame=False)
+                        if not isinstance(all_device_data, list):
+                            all_device_data = [all_device_data]
+                        self.is_device_data.set()
+                        for i in range(len(all_device_data)):
+                            if self.devices[i].processing_method is not None:
+                                self.device_queue_in[i].put_nowait(all_device_data[i])
+                    if len(interface.marker_sets) != 0:
+                        all_markers_tmp, _ = interface.get_marker_set_data(get_frame=False)
+                        if not isinstance(all_markers_tmp, list):
+                            all_markers_tmp = [all_markers_tmp]
+                        self.is_kin_data.set()
+                        for i in range(len(self.marker_sets)):
+                            if self.marker_sets[i].kin_method is not None:
+                                self.kin_queue_in[i].put_nowait(all_markers_tmp[i])
+                    time_to_get_data = time() - tic
+                    tic_process = time()
+                    if len(interface.devices) != 0:
+                        for i in range(len(interface.devices)):
+                            if self.devices[i].processing_method is not None:
+                                self.device_event[i].wait()
+                                device_data = self.device_queue_out[i].get_nowait()
+                                self.device_event[i].clear()
+                                proc_device_data.append(
+                                    np.around(device_data["processed_data"], decimals=self.device_decimals)
+                                )
+                            raw_device_data.append(np.around(all_device_data[i], decimals=self.device_decimals))
+                        data_dic["proc_device_data"] = proc_device_data
+                        data_dic["raw_device_data"] = raw_device_data
 
-                if len(interface.marker_sets) != 0:
-                    for i in range(len(interface.marker_sets)):
-                        if self.marker_sets[i].kin_method is not None:
-                            self.kin_event[i].wait()
-                            kin_data_proc = self.kin_queue_out[i].get_nowait()
-                            self.kin_event[i].clear()
-                            kin_data.append(np.around(kin_data_proc["kinematics_data"], decimals=self.kin_decimals))
-                        raw_markers_data.append(np.around(all_markers_tmp[i], decimals=self.kin_decimals))
-                    data_dic["kinematics_data"] = kin_data
-                    data_dic["marker_set_data"] = raw_markers_data
-                process_time = time() - tic_process  # time to process all data
+                    if len(interface.marker_sets) != 0:
+                        for i in range(len(interface.marker_sets)):
+                            if self.marker_sets[i].kin_method is not None:
+                                self.kin_event[i].wait()
+                                kin_data_proc = self.kin_queue_out[i].get_nowait()
+                                self.kin_event[i].clear()
+                                kin_data.append(np.around(kin_data_proc["kinematics_data"], decimals=self.kin_decimals))
+                            raw_markers_data.append(np.around(all_markers_tmp[i], decimals=self.kin_decimals))
+                        data_dic["kinematics_data"] = kin_data
+                        data_dic["marker_set_data"] = raw_markers_data
+                    process_time = time() - tic_process  # time to process all data
 
-                for i in range(len(self.ports)):
-                    try:
-                        self.server_queue[i].get_nowait()
-                    except Exception:
-                        pass
-                    self.server_queue[i].put_nowait(data_dic)
-                if len(self.plots) != 0:
-                    size = 1 if not self.plots_multiprocess else len(self.plots)
-                    for i in range(size):
+                    for i in range(len(self.ports)):
                         try:
-                            self.plots_queue[i].get_nowait()
+                            self.server_queue[i].get_nowait()
                         except Exception:
                             pass
-                        self.plots_queue[i].put_nowait(data_dic)
+                        self.server_queue[i].put_nowait(data_dic)
+                    if len(self.plots) != 0:
+                        size = 1 if not self.plots_multiprocess else len(self.plots)
+                        for i in range(size):
+                            try:
+                                self.plots_queue[i].get_nowait()
+                            except Exception:
+                                pass
+                            self.plots_queue[i].put_nowait(data_dic)
 
-                data_dic["absolute_time_frame"] = absolute_time_frame_dic
-                data_dic["interface_latency"] = interface_latency
-                data_dic["process_time"] = process_time
-                data_dic["initial_time"] = initial_time
-                data_dic["time_to_get_data"] = time_to_get_data
+                    data_dic["absolute_time_frame"] = absolute_time_frame_dic
+                    data_dic["interface_latency"] = interface_latency
+                    data_dic["process_time"] = process_time
+                    data_dic["initial_time"] = initial_time
+                    data_dic["time_to_get_data"] = time_to_get_data
+                    data_dic["frame_number"] = frame_number
 
-                # Save data
-                if self.save_data is True:
-                    tic_save = time()
-                    data_dic["saving_time"] = saving_time
-                    dic_to_save = dic_merger(data_dic, dic_to_save)
-                    if save_count == int(self.stream_rate / self.save_frequency):
-                        save(data_dic, self.save_path)
-                        dic_to_save = {}
-                        save_count = 0
-                    save_count += 1
-                    saving_time = time() - tic_save
+                    # Save data
+                    if self.save_data is True:
+                        tic_save = time()
+                        data_dic["saving_time"] = saving_time
+                        dic_to_save = dic_merger(data_dic, dic_to_save)
+                        if save_count == int(self.stream_rate / self.save_frequency):
+                            save(data_dic, self.save_path)
+                            dic_to_save = {}
+                            save_count = 0
+                        save_count += 1
+                        saving_time = time() - tic_save
 
-                if tic - time() < 1 / self.stream_rate:
-                    sleep(1 / self.stream_rate - (tic - time()))
-                else:
-                    print(
-                        f"WARNING: Stream rate ({self.stream_rate}) is too high for the computer."
-                        f"The actual stream rate is {1 / (tic - time())}"
-                    )
+                    if tic - time() < 1 / self.stream_rate:
+                        sleep(1 / self.stream_rate - (0.01 * (1 / self.stream_rate)) - (tic - time()))
+                    else:
+                        print(
+                            f"WARNING: Stream rate ({self.stream_rate}) is too high for the computer."
+                            f"The actual stream rate is {1 / (tic - time())}"
+                        )
 
     def stop(self):
         """
