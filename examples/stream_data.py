@@ -51,7 +51,21 @@ if __name__ == "__main__":
         interface = PytrignoClient(system_rate=100, ip="127.0.0.1")
     else:
         raise ValueError("The type of interface is not valid.")
-
+    other_interface = MyInterface(system_rate=50, data_path="abd.bio")
+    other_interface.add_device(
+        name="EMG_bis",
+        device_type=DeviceType.Emg,
+        rate=2000,
+        nb_channels=3,
+        device_data_file_key="emg",
+        data_buffer_size=2000,
+        processing_method=RealTimeProcessingMethod.ProcessEmg,
+        processing_window=1,
+        moving_average_window=1,
+        low_pass_filter=False,
+        band_pass_filter=True,
+        normalization=False,
+    )
     model_path = "model/Wu_Shoulder_Model_mod_wt_wrapp.bioMod"
     nb_electrode = 5
     interface.add_device(
@@ -86,5 +100,6 @@ if __name__ == "__main__":
     )
     data_streaming = StreamData(stream_rate=100)
     data_streaming.add_interface(interface)
-    data_streaming.add_server(server_ip, server_port, device_buffer_size=20, marker_set_buffer_size=1)
+    data_streaming.add_interface(other_interface)
+    # data_streaming.add_server(server_ip, server_port)#, device_buffer_size=20, marker_set_buffer_size=1)
     data_streaming.start(save_streamed_data=True, save_path="data_streamed")

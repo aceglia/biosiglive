@@ -222,7 +222,7 @@ class GenericInterface:
         """
         Get the frame number of the interface.
         """
-        raise RuntimeError(f"You can not get frame number from '{self.interface_type}'.")
+        return None
 
     def get_kinematics_from_marker_set(self, **kwargs):
         """
