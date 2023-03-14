@@ -1,6 +1,7 @@
 import pickle
 import numpy as np
 from pathlib import Path
+from ..streaming.utils import dic_merger
 
 
 def save(data_dict, data_path):
@@ -41,26 +42,17 @@ def load(filename, number_of_line=None):
     """
     if Path(filename).suffix != ".bio":
         raise ValueError("The file must be a .bio file.")
-    data = {}
+    data = None
     limit = 2 if not number_of_line else number_of_line
     with open(filename, "rb") as file:
         count = 0
         while count < limit:
             try:
                 data_tmp = pickle.load(file)
-                for key in data_tmp.keys():
-                    if key in data.keys():
-                        if isinstance(data[key], list) is True:
-                            data[key].append(data_tmp[key])
-                        else:
-                            data[key] = np.append(data[key], data_tmp[key], axis=len(data[key].shape) - 1)
-                    else:
-                        if isinstance(data_tmp[key], (int, float, str, dict)) is True:
-                            data[key] = [data_tmp[key]]
-                        elif isinstance(data_tmp[key], list) is True:
-                            data[key] = [data_tmp[key]]
-                        else:
-                            data[key] = data_tmp[key]
+                if not data:
+                    data = data_tmp
+                else:
+                    data = dic_merger(data, data_tmp)
                 if number_of_line:
                     count += 1
                 else:

@@ -546,7 +546,7 @@ class StreamData:
         initial_time = 0
         iteration = 0
         dic_to_save = [{}, {}]
-        save_count = 0
+        save_count = [0] * len(self.interfaces)
         self.save_frequency = self.save_frequency if self.save_frequency else self.stream_rate
         interface = self.interfaces[interface_idx]
         saving_time = None
@@ -674,24 +674,26 @@ class StreamData:
                     if self.save_data is True:
                         tic_save = time()
                         data_dic["saving_time"] = saving_time
-                        if save_count == int(self.interfaces[interface_idx].system_rate / self.save_frequency):
-                            path = self.save_path + str(interface_idx)
-                            if interface_idx == self.main_interface_idx:
-                                dic_to_save[interface_idx] = dic_merger(data_dic, dic_to_save[interface_idx])
-                                save(data_dic, path)
-                            else:
-                                dic_to_save[interface_idx] = dic_merger(data_other_int, dic_to_save[interface_idx])
-                                save(data_other_int, path)
-                            dic_to_save = [{}, {}]
-                            save_count = 0
-                        save_count += 1
+                        # if save_count[interface_idx] == int(self.interfaces[interface_idx].system_rate / self.save_frequency):
+                        path = self.save_path + str(interface_idx)
+                        if interface_idx == self.main_interface_idx:
+                            dic_to_save[interface_idx] = dic_merger(data_dic, dic_to_save[interface_idx])
+                            save(data_dic, path)
+                        else:
+                            dic_to_save[interface_idx] = dic_merger(data_other_int, dic_to_save[interface_idx])
+                            save(data_other_int, path)
+                        dic_to_save = [{}, {}]
+                        save_count[interface_idx] = 0
+                        save_count[interface_idx] += 1
                         saving_time = time() - tic_save
+
                     time_tmp = ((time() - tic) - 0.0001)
                     if time_tmp < 1 / self.interfaces[interface_idx].system_rate:
-                        sleep(1 / self.stream_rate - time_tmp)
+                        sleep(1 / self.interfaces[interface_idx].system_rate - time_tmp)
                     else:
                         print(
-                            f"WARNING: Stream rate ({self.interfaces[interface_idx].system_rate}) is too high for the computer."
+                            f"WARNING: Stream rate ({self.interfaces[interface_idx].system_rate})"
+                            f" is too high for the computer."
                             f"The actual stream rate is {1 / (time() - tic)}"
                         )
 
