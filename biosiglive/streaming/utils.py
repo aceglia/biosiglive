@@ -1,15 +1,15 @@
 import numpy as np
 
 
-def dic_merger(dic_to_merge, new_dic=None):
+def dic_merger(dic_to_merge: dict, new_dic: dict = None) -> dict:
     """Merge two dictionaries.
 
     Parameters
     ----------
     dic_to_merge : dict
-        Dictionary to merge.
+        Existing dictionary to merge.
     new_dic : dict
-        Dictionary to merge with.
+        Temporary dictionary to merge with.
 
     Returns
     -------
@@ -46,24 +46,3 @@ def dic_merger(dic_to_merge, new_dic=None):
                 new_dic[key] = new_dic[key]
     return new_dic
 
-
-def check_instance(data, instance):
-    """Check if the data is an instance of the instance.
-
-    Parameters
-    ----------
-    data : any
-        The data to check.
-    instance : any
-        The instance to check.
-
-    Returns
-    -------
-    bool
-        True if the data is an instance of the instance, False otherwise.
-
-    """
-    if isinstance(data, instance):
-        return True
-    else:
-        return False
