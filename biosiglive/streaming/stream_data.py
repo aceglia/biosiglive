@@ -247,20 +247,16 @@ class StreamData:
             buffer_size = self.device_buffer_size[device_idx]
         else:
             buffer_size = self.devices[interface_idx][device_idx].rate
-        device_data = []
         while True:
             self.is_device_data[interface_idx].wait()
-            try:
-                device_data = self.device_queue_in[interface_idx][device_idx].get_nowait()
-                is_working = True
-            except Exception:
-                is_working = False
-            if is_working:
+            device_data = self._get_from_queue(self.device_queue_in[interface_idx][device_idx])
+            if device_data is not None:
                 self.devices[interface_idx][device_idx].new_data = device_data
                 self.devices[interface_idx][device_idx].append_data(device_data)
                 processed_data = self.devices[interface_idx][device_idx].process(**self.devices[interface_idx][device_idx].processing_method_kwargs)
                 self.device_queue_out[interface_idx][device_idx].put_nowait({"processed_data": processed_data[:, -buffer_size:]})
                 self.device_event[interface_idx][device_idx].set()
+            sleep(0.001)
 
     def recons_kin(self, marker_set_idx: int, interface_idx: int):
         """
@@ -281,15 +277,10 @@ class StreamData:
             buffer_size = self.marker_sets[interface_idx][marker_set_idx].rate
         if "model_path" not in self.marker_sets[interface_idx][marker_set_idx].kin_method_kwargs.keys():
             raise ValueError("No model to compute the kinematics.")
-        markers = []
         while True:
             self.is_kin_data[interface_idx].wait()
-            try:
-                markers = self.kin_queue_in[interface_idx][marker_set_idx].get_nowait()
-                is_working = True
-            except Exception:
-                is_working = False
-            if is_working:
+            markers = self._get_from_queue(self.kin_queue_in[interface_idx][marker_set_idx])
+            if markers is not None:
                 self.marker_sets[interface_idx][marker_set_idx].new_data = markers
                 self.marker_sets[interface_idx][marker_set_idx].append_data(markers)
                 states, _ = self.marker_sets[interface_idx][marker_set_idx].get_kinematics(
@@ -297,6 +288,7 @@ class StreamData:
                 )
                 self.kin_queue_out[interface_idx][marker_set_idx].put_nowait({"kinematics_data": states[:, -buffer_size:]})
                 self.kin_event[interface_idx][marker_set_idx].set()
+            sleep(0.001)
 
     def open_server(self, server_idx: int):
         """
@@ -310,19 +302,13 @@ class StreamData:
         server = Server(self.server_ip, self.ports[server_idx], server_type=self.client_type)
         server.start()
         while True:
-            data_queue = []
             connection, message = server.client_listening()
             # use Try statement as the queue can be empty and is_empty function is not reliable.
-            try:
-                data_queue = self.server_queue[server_idx].get_nowait()
-                is_working = True
-            except Exception:
-                is_working = False
-
-            if is_working:  # use this method to avoid blocking the server with Windows os.
+            data_queue = self._get_from_queue(self.server_queue[server_idx])
+            if data_queue:  # use this method to avoid blocking the server with Windows os.
                 data_queue.append(data_queue)
                 server.send_data(data_queue, connection, message)
-
+            
     def _init_multiprocessing(self):
         """
         Initialize the multiprocessing.
@@ -500,39 +486,6 @@ class StreamData:
                             ].T
                     plot.update(data_to_plot)
 
-    def check_other_interface(self, data: dict, interface_idx: int) -> dict:
-        """
-        Check if there is data in the other interface.
-
-        Parameters
-        ----------
-        data: dict
-            Data to concatenate in case of there is data.
-        interface_idx: int
-            Current interface index
-        Returns
-        -------
-        dict
-            return the data with the other interface data.
-        """
-        data_final = data
-        if len(self.interfaces) > 1:
-            if interface_idx != self.main_interface_idx:
-                return data
-            else:
-                for i in range(len(self.interfaces)):
-                    if i == interface_idx:
-                        continue
-                    else:
-                        data_tmp = None
-                        try:
-                            data_tmp = self.interfaces_data_queue[i].get_nowait()
-                        except Exception:
-                            pass
-                        return data_tmp
-        else:
-            return data
-
     def save_streamed_data(self, interface_idx: int):
         """
         Stream, process and save the data.
@@ -545,7 +498,6 @@ class StreamData:
         """
         initial_time = 0
         iteration = 0
-        dic_to_save = [{}, {}]
         save_count = [0] * len(self.interfaces)
         self.save_frequency = self.save_frequency if self.save_frequency else self.stream_rate
         interface = self.interfaces[interface_idx]
@@ -555,6 +507,8 @@ class StreamData:
         lost_frames = []
         while True:
             data_dic = {}
+            dic_to_save = {}
+            data_dic_all = [{}] * len(self.interfaces)
             proc_device_data = []
             raw_device_data = []
             raw_markers_data = []
@@ -562,6 +516,7 @@ class StreamData:
             all_markers_tmp = []
             kin_data = []
             tic = time()
+            data_other_int = {}
             if iteration == 0:
                 initial_time = time() - tic
             interface_latency = interface.get_latency()
@@ -592,6 +547,7 @@ class StreamData:
                 }
                 self.is_kin_data[interface_idx].clear()
                 self.is_device_data[interface_idx].clear()
+
                 if is_frame:
                     if iteration == 0:
                         print("Data start streaming")
@@ -604,6 +560,7 @@ class StreamData:
                         for i in range(len(all_device_data)):
                             if self.devices[interface_idx][i].processing_method is not None:
                                 self.device_queue_in[interface_idx][i].put_nowait(all_device_data[i])
+
                     if len(interface.marker_sets) != 0:
                         all_markers_tmp, _ = interface.get_marker_set_data(get_frame=False)
                         if not isinstance(all_markers_tmp, list):
@@ -613,6 +570,7 @@ class StreamData:
                             if self.marker_sets[interface_idx][i].kin_method is not None:
                                 self.kin_queue_in[interface_idx][i].put_nowait(all_markers_tmp[i])
                     time_to_get_data = time() - tic
+
                     tic_process = time()
                     if len(interface.devices) != 0:
                         for i in range(len(interface.devices)):
@@ -637,52 +595,63 @@ class StreamData:
                             raw_markers_data.append(np.around(all_markers_tmp[i], decimals=self.kin_decimals))
                         data_dic["kinematics_data"] = kin_data
                         data_dic["marker_set_data"] = raw_markers_data
-                    if interface_idx != self.main_interface_idx:
-                        try:
-                            self.interfaces_data_queue[interface_idx].get_nowait()
-                        except Exception:
-                            pass
-                        self.interfaces_data_queue[interface_idx].put_nowait(data_dic)
-                    process_time = time() - tic_process  # time to process all data
-                    data_other_int = self.check_other_interface(data_dic, interface_idx)
+                    process_time = time() - tic_process
 
+                    if interface_idx != self.main_interface_idx:
+                        dic_to_put = data_dic
+                        dic_to_put["absolute_time_frame"] = absolute_time_frame_dic
+                        dic_to_put["interface_latency"] = interface_latency
+                        dic_to_put["process_time"] = process_time
+                        dic_to_put["initial_time"] = initial_time
+                        dic_to_put["time_to_get_data"] = time_to_get_data
+                        dic_to_put["frame_number"] = frame_number
+                        dic_to_put["lost_frames"] = lost_frames
+                        data_dic_all[interface_idx] = dic_to_put
+                        self._put_in_queue(self.interfaces_data_queue[interface_idx], dic_to_put)
+                    else:
+                        data_dic_all[interface_idx] = data_dic
+                        data_dic_all[interface_idx]["absolute_time_frame"] = absolute_time_frame_dic
+                        data_dic_all[interface_idx]["interface_latency"] = interface_latency
+                        data_dic_all[interface_idx]["process_time"] = process_time
+                        data_dic_all[interface_idx]["initial_time"] = initial_time
+                        data_dic_all[interface_idx]["time_to_get_data"] = time_to_get_data
+                        data_dic_all[interface_idx]["frame_number"] = frame_number
+                        data_dic_all[interface_idx]["lost_frames"] = lost_frames
+                        for i in range(len(self.interfaces)):
+                            if i != self.main_interface_idx:
+                                data_tmp = self._get_from_queue(self.interfaces_data_queue[i], timeout=0.001)
+                                if data_tmp is not None:
+                                    data_dic_all[i] = data_tmp
+
+                    #data_other_int = self.check_other_interface(data_dic, interface_idx)
                     if interface_idx == self.main_interface_idx:
                         for i in range(len(self.ports)):
-                            try:
-                                self.server_queue[i].get_nowait()
-                            except Exception:
-                                pass
-                            self.server_queue[i].put_nowait(data_dic)
+                            self._put_in_queue(self.server_queue[i], data_dic)
 
                         if len(self.plots) != 0:
                             size = 1 if not self.plots_multiprocess else len(self.plots)
                             for i in range(size):
-                                try:
-                                    self.plots_queue[i].get_nowait()
-                                except Exception:
-                                    pass
-                                self.plots_queue[i].put_nowait(data_dic)
-                    data_dic["absolute_time_frame"] = absolute_time_frame_dic
-                    data_dic["interface_latency"] = interface_latency
-                    data_dic["process_time"] = process_time
-                    data_dic["initial_time"] = initial_time
-                    data_dic["time_to_get_data"] = time_to_get_data
-                    data_dic["frame_number"] = frame_number
-                    data_dic["lost_frames"] = lost_frames
+                                self._put_in_queue(self.plots_queue[i], data_dic)
+                    # data_dic["absolute_time_frame"] = absolute_time_frame_dic
+                    # data_dic["interface_latency"] = interface_latency
+                    # data_dic["process_time"] = process_time
+                    # data_dic["initial_time"] = initial_time
+                    # data_dic["time_to_get_data"] = time_to_get_data
+                    # data_dic["frame_number"] = frame_number
+                    # data_dic["lost_frames"] = lost_frames
 
                     # Save data
                     if self.save_data is True:
                         tic_save = time()
-                        data_dic["saving_time"] = saving_time
                         # if save_count[interface_idx] == int(self.interfaces[interface_idx].system_rate / self.save_frequency):
                         path = self.save_path + str(interface_idx)
                         if interface_idx == self.main_interface_idx:
-                            dic_to_save[interface_idx] = dic_merger(data_dic, dic_to_save[interface_idx])
-                            save(data_dic, path)
+                            for i in range(len(self.interfaces)):
+                                #dic_to_save[f"interface_{interface_idx}"] = dic_merger(data_dic, dic_to_save[interface_idx])
+                                dic_to_save[f"interface_{i}"] = data_dic_all[i]
+                            save(dic_to_save, path)
                         else:
-                            dic_to_save[interface_idx] = dic_merger(data_other_int, dic_to_save[interface_idx])
-                            save(data_other_int, path)
-                        dic_to_save = [{}, {}]
+                            save(data_dic_all[interface_idx], path)
                         save_count[interface_idx] = 0
                         save_count[interface_idx] += 1
                         saving_time = time() - tic_save
@@ -696,6 +665,54 @@ class StreamData:
                             f" is too high for the computer."
                             f"The actual stream rate is {1 / (time() - tic)}"
                         )
+                    iteration += 1
+
+    @staticmethod
+    def _put_in_queue(queue: mp.Queue, data: dict, keys: list = None) -> None:
+        """
+        Put data in a queue
+
+        Parameters
+        ----------
+        queue : mp.Queue
+            Queue to put data in
+        data : dict
+            Data to put in the queue
+        keys : list
+            Keys of the data to put in the queue
+        """
+        if keys:
+            for key in data.keys():
+                if key not in keys:
+                    del data[key]
+        try:
+            queue.get_nowait()
+        except Exception:
+            pass
+        queue.put_nowait(data)
+
+    @staticmethod
+    def _get_from_queue(queue: mp.Queue, timeout: float = 0) -> dict or None:
+        """
+        Get data from a queue
+
+        Parameters
+        ----------
+        queue : mp.Queue
+            Queue to get data from
+        timeout : float
+            Timeout of the queue
+
+        Returns
+        -------
+        dict
+            Data from the queue if data is available, else None
+        """
+        try:
+            data = queue.get(timeout=timeout)
+            return data
+        except Exception:
+            pass
 
     def stop(self):
         """

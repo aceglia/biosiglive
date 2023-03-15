@@ -21,16 +21,19 @@ def dic_merger(dic_to_merge: dict, new_dic: dict = None) -> dict:
         new_dic = dic_to_merge
     else:
         for key in dic_to_merge.keys():
-            if not dic_to_merge[key]:
+            if dic_to_merge[key] is None:
                 dic_to_merge[key] = [dic_to_merge[key]]
-            if not new_dic[key]:
+            if new_dic[key] is None:
                 new_dic[key] = [new_dic[key]]
             if isinstance(new_dic[key], (int, float)):
                 new_dic[key] = [new_dic[key]]
             if isinstance(dic_to_merge[key], (int, float)):
                 dic_to_merge[key] = [dic_to_merge[key]]
             if isinstance(dic_to_merge[key], dict):
-                new_dic[key] = dic_merger(dic_to_merge[key], new_dic[key])
+                if len(new_dic[key].keys()) == 0:
+                    new_dic[key] = dic_to_merge[key]
+                else:
+                    new_dic[key] = dic_merger(dic_to_merge[key], new_dic[key])
             elif isinstance(dic_to_merge[key], list):
                 new_dic[key] = dic_to_merge[key] + new_dic[key]
             elif isinstance(dic_to_merge[key], np.ndarray):
