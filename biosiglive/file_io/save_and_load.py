@@ -1,9 +1,31 @@
 import os.path
 
 import pickle
-import numpy as np
 from pathlib import Path
 from ..streaming.utils import dic_merger
+import pickletools
+import gzip
+from multiprocessing import Pool
+
+
+def _load_and_compress(origin_file, target_file=None):
+    data = load(origin_file)
+    if not target_file:
+        target_file = Path(origin_file).stem + ".bio.gzip"
+    if Path(target_file).suffix != ".gzip":
+        target_file = target_file + ".gzip"
+    f = gzip.open(target_file, "wb")
+    data_pick = pickletools.optimize(pickle.dumps(data, pickle.HIGHEST_PROTOCOL))
+    f.write(data_pick)
+    f.close()
+
+
+def compress(origin_file, target_file=None, multi_proc=False):
+    if multi_proc:
+        pool = Pool(processes=os.cpu_count())
+        pool.map(_load_and_compress, origin_file)
+    else:
+        _load_and_compress(origin_file, target_file)
 
 
 def is_int_file_end(data_path, last_n = None):
@@ -55,7 +77,6 @@ def save(data_dict, data_path, safe=False):
         pickle.dump(data_dict, outf, pickle.HIGHEST_PROTOCOL)
 
 
-# TODO add dict merger
 def load(filename, number_of_line=None, merge=True):
     """This function reads data from a pickle file to concatenate them into one dictionary.
 
@@ -74,26 +95,50 @@ def load(filename, number_of_line=None, merge=True):
         The data read from the file.
 
     """
-    if Path(filename).suffix != ".bio":
-        raise ValueError("The file must be a .bio file.")
+    if Path(filename).suffix == ".bio":
+        with_gzip = False
+    elif Path(filename).suffix == ".gzip":
+        with_gzip = True
+    else:
+        raise ValueError("The file must be a .bio or a .bio.gzip file.")
     data = None if merge else []
     limit = 2 if not number_of_line else number_of_line
-    with open(filename, "rb") as file:
-        count = 0
-        while count < limit:
-            try:
-                data_tmp = pickle.load(file)
-                if not merge:
-                    data.append(data_tmp)
-                else:
-                    if not data:
-                        data = data_tmp
+    if with_gzip:
+        with gzip.open(filename, "rb") as file:
+            count = 0
+            while count < limit:
+                try:
+                    data_tmp = pickle.load(file)
+                    if not merge:
+                        data.append(data_tmp)
                     else:
-                        data = dic_merger(data, data_tmp)
-                if number_of_line:
-                    count += 1
-                else:
-                    count = 1
-            except EOFError:
-                break
+                        if not data:
+                            data = data_tmp
+                        else:
+                            data = dic_merger(data, data_tmp)
+                    if number_of_line:
+                        count += 1
+                    else:
+                        count = 1
+                except EOFError:
+                    break
+    else:
+        with open(filename, "rb") as file:
+            count = 0
+            while count < limit:
+                try:
+                    data_tmp = pickle.load(file)
+                    if not merge:
+                        data.append(data_tmp)
+                    else:
+                        if not data:
+                            data = data_tmp
+                        else:
+                            data = dic_merger(data, data_tmp)
+                    if number_of_line:
+                        count += 1
+                    else:
+                        count = 1
+                except EOFError:
+                    break
     return data
