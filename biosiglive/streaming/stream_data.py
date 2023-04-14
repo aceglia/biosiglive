@@ -41,8 +41,6 @@ class StreamData:
 
         # Multiprocessing stuff
         manager = mp.Manager()
-        self.queue = manager.Queue
-        self.event = manager.Event
         self.device_queue_in = []
         self.device_queue_out = []
         self.kin_queue_in = []
@@ -92,9 +90,9 @@ class StreamData:
             The index of the interface to which the device is added.
         """
         self.devices[interface_idx].append(device)
-        self.device_queue_in[interface_idx].append(self.queue())
-        self.device_queue_out[interface_idx].append(self.queue())
-        self.device_event[interface_idx].append(self.event())
+        self.device_queue_in[interface_idx].append(mp.Manager().Queue())
+        self.device_queue_out[interface_idx].append(mp.Manager().Queue())
+        self.device_event[interface_idx].append(mp.Manager().Event())
 
     def add_interface(self, interface: GenericInterface()):
         """
@@ -113,7 +111,7 @@ class StreamData:
         self.interfaces.append(interface)
         interface_idx = len(self.interfaces) - 1
         self.interfaces_type.append(interface.interface_type)
-        self.interface_event.append(self.event())
+        self.interface_event.append(mp.Manager().Event())
         self.devices.append([])
         self.device_queue_in.append([])
         self.device_queue_out.append([])
@@ -122,9 +120,9 @@ class StreamData:
         self.kin_queue_in.append([])
         self.kin_queue_out.append([])
         self.kin_event.append([])
-        self.interfaces_data_queue.append(self.queue())
-        self.is_kin_data.append(self.event())
-        self.is_device_data.append(self.event())
+        self.interfaces_data_queue.append(mp.Manager().Queue())
+        self.is_kin_data.append(mp.Manager().Event())
+        self.is_device_data.append(mp.Manager().Event())
         for device in interface.devices:
             self._add_device(device, interface_idx)
         for marker in interface.marker_sets:
@@ -170,7 +168,7 @@ class StreamData:
             self.ports = [self.ports]
 
         for p in range(len(self.ports)):
-            self.server_queue.append(self.queue())
+            self.server_queue.append(mp.Manager().Queue())
         self.client_type = client_type
 
         if not device_buffer_size:
@@ -225,9 +223,9 @@ class StreamData:
             The index of the interface to which the marker set is added.
         """
         self.marker_sets[interface_idx].append(marker)
-        self.kin_queue_in[interface_idx].append(self.queue())
-        self.kin_queue_out[interface_idx].append(self.queue())
-        self.kin_event[interface_idx].append(self.event())
+        self.kin_queue_in[interface_idx].append(mp.Manager().Queue())
+        self.kin_queue_out[interface_idx].append(mp.Manager().Queue())
+        self.kin_event[interface_idx].append(mp.Manager().Event())
 
     # TODO : add buffer directly in the server
     def device_processing(self, device_idx: int, interface_idx: int):
@@ -427,7 +425,7 @@ class StreamData:
         #     raise ValueError("The length of the data to plot and the raw list must be the same.")
         # if not raw:
         #     raw = [True] * len(data_to_plot)
-        # self.plots_queue.append(self.queue())
+        # self.plots_queue.append(mp.Manager().Queue())
         # self.raw_plot = raw
         # self.data_to_plot = data_to_plot
         # if self.multiprocess_started:
