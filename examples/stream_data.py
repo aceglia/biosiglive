@@ -89,15 +89,16 @@ if __name__ == "__main__":
         "band_pass_filter": True,
     }
 
-    interface.add_marker_set(
-        name="markers",
-        rate=100,
-        data_buffer_size=100,
-        kinematics_method=InverseKinematicsMethods.BiorbdKalman,
-        model_path=model_path,
-        marker_data_file_key="markers",
-        nb_markers=16,
-    )
+    # interface.add_marker_set(
+    #     name="markers",
+    #     rate=100,
+    #     data_buffer_size=100,
+    #     kinematics_method=InverseKinematicsMethods.BiorbdKalman,
+    #     model_path=model_path,
+    #     marker_data_file_key="markers",
+    #     nb_markers=16,
+    #     unit="mm"
+    # )
     data_streaming = StreamData(stream_rate=100)
     data_streaming.add_interface(interface)
     data_streaming.add_interface(other_interface)

@@ -95,12 +95,13 @@ def load(filename, number_of_line=None, merge=True):
         The data read from the file.
 
     """
-    if Path(filename).suffix == ".bio":
-        with_gzip = False
-    elif Path(filename).suffix == ".gzip":
-        with_gzip = True
-    else:
-        raise ValueError("The file must be a .bio or a .bio.gzip file.")
+    # if Path(filename).suffix == ".bio":
+    #     with_gzip = False
+    # elif Path(filename).suffix == ".gzip":
+    #     with_gzip = True
+    # else:
+    # #     raise ValueError("The file must be a .bio or a .bio.gzip file.")
+    with_gzip = False
     data = None if merge else []
     limit = 2 if not number_of_line else number_of_line
     if with_gzip:

@@ -46,9 +46,11 @@ if __name__ == "__main__":
     )
     tcp_client.add_marker_set(15, name="markers", rate=100, command_name="marker_set_data")
     while True:
+        tic = time.time()
         tcp_client.get_data_from_server(
             command=["proc_device_data", "marker_set_data"], nb_frame_to_get=10, down_sampling={"proc_device_data": 5}
         )
+        print("Time to get data from server: ", time.time() - tic)
         data = tcp_client.get_device_data(device_name="processed EMG", get_from_server=False)
         data_mark = tcp_client.get_marker_set_data(marker_set_name="markers", get_from_server=False)
         time.sleep(0.01)

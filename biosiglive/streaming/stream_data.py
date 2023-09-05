@@ -499,10 +499,11 @@ class StreamData:
         save_count = [0] * len(self.interfaces)
         self.save_frequency = self.save_frequency if self.save_frequency else self.stream_rate
         interface = self.interfaces[interface_idx]
-        saving_time = None
+        saving_time = 0
         frame_number = None
         last_frame_number = None
         lost_frames = []
+        last_frame_number_others = [0] * len(self.interfaces)
         while True:
             data_dic = {}
             dic_to_save = {}
@@ -604,6 +605,7 @@ class StreamData:
                         dic_to_put["time_to_get_data"] = time_to_get_data
                         dic_to_put["frame_number"] = frame_number
                         dic_to_put["lost_frames"] = lost_frames
+                        dic_to_put["saving_time"] = saving_time
                         data_dic_all[interface_idx] = dic_to_put
                         self._put_in_queue(self.interfaces_data_queue[interface_idx], dic_to_put)
                     else:
@@ -615,13 +617,19 @@ class StreamData:
                         data_dic_all[interface_idx]["time_to_get_data"] = time_to_get_data
                         data_dic_all[interface_idx]["frame_number"] = frame_number
                         data_dic_all[interface_idx]["lost_frames"] = lost_frames
+                        data_dic_all[interface_idx]["saving_time"] = saving_time
                         for i in range(len(self.interfaces)):
                             if i != self.main_interface_idx:
-                                data_tmp = self._get_from_queue(self.interfaces_data_queue[i], timeout=0.001)
+                                data_tmp = self._get_from_queue(self.interfaces_data_queue[i], timeout=0.006)
                                 if data_tmp is not None:
+                                    if data_tmp["frame_number"] != last_frame_number_others[i] + 1:
+                                        data_tmp["lost_frames"] = list(range(last_frame_number_others[i] + 1, data_tmp["frame_number"]))
+                                        if len(data_tmp["lost_frames"]) == 0:
+                                            data_tmp["lost_frames"] = data_tmp["frame_number"] - last_frame_number_others[i]
+                                        print("Lost frames: ", data_tmp["lost_frames"])
+                                    last_frame_number_others[i] = data_tmp["frame_number"]
                                     data_dic_all[i] = data_tmp
 
-                    #data_other_int = self.check_other_interface(data_dic, interface_idx)
                     if interface_idx == self.main_interface_idx:
                         for i in range(len(self.ports)):
                             self._put_in_queue(self.server_queue[i], data_dic)
@@ -630,13 +638,6 @@ class StreamData:
                             size = 1 if not self.plots_multiprocess else len(self.plots)
                             for i in range(size):
                                 self._put_in_queue(self.plots_queue[i], data_dic)
-                    # data_dic["absolute_time_frame"] = absolute_time_frame_dic
-                    # data_dic["interface_latency"] = interface_latency
-                    # data_dic["process_time"] = process_time
-                    # data_dic["initial_time"] = initial_time
-                    # data_dic["time_to_get_data"] = time_to_get_data
-                    # data_dic["frame_number"] = frame_number
-                    # data_dic["lost_frames"] = lost_frames
 
                     # Save data
                     if self.save_data is True:
@@ -654,15 +655,17 @@ class StreamData:
                         save_count[interface_idx] += 1
                         saving_time = time() - tic_save
 
-                    time_tmp = ((time() - tic) - 0.0001)
+                    time_tmp = time() - tic + 0.0001
                     if time_tmp < 1 / self.interfaces[interface_idx].system_rate:
                         sleep(1 / self.interfaces[interface_idx].system_rate - time_tmp)
-                    else:
+                    elif time_tmp - 0.0005 > 1 / self.interfaces[interface_idx].system_rate:
                         print(
                             f"WARNING: Stream rate ({self.interfaces[interface_idx].system_rate})"
                             f" is too high for the computer."
-                            f"The actual stream rate is {1 / (time() - tic)}"
+                            f"The actual stream rate is {1 / (time_tmp - 0.0001)}"
                         )
+                    # if interface_idx == self.main_interface_idx:
+                    #     print(1/(time() - tic))
                     iteration += 1
 
     @staticmethod

@@ -11,15 +11,18 @@ from biosiglive import save, load
 import numpy as np
 
 if __name__ == "__main__":
-    data = {
-        "data_np": np.random.rand(2, 20),
-        "data_list": [5, 8],
-        "data_dict": {"data_np": np.random.rand(2, 20)},
-        "data_int": 1,
-    }
-    i = 0
-    while i != 50:
-        save(data, "test")
-        i += 1
-    data_loaded = load("test.bio")
-    os.remove("test.bio")
+    # data = {
+    #     "data_np": np.random.rand(2, 20),
+    #     "data_list": [5, 8],
+    #     "data_dict": {"data_np": np.random.rand(2, 20)},
+    #     "data_int": 1,
+    # }
+    # i = 0
+    # while i != 50:
+    #     save(data, "test")
+    #     i += 1
+    # data_loaded = load("test.bio")
+    # os.remove("test.bio")
+    data_1 = load("data_streamed1.bio", merge=True)
+    data_0 = load("data_streamed0.bio", merge=True)
+    print(data_0["saving_time"])
