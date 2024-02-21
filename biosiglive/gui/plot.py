@@ -251,6 +251,55 @@ class LivePlot:
             self.plots[-1].showGrid(x=grid, y=grid)
             line_count += 1
 
+    def _add_curve(
+        self,
+        figure_name: str = "Figure",
+        subplot_labels: Union[list, str] = None,
+        nb_subplot: int = None,
+        x_labels: Union[list, str] = None,
+        y_labels: Union[list, str] = None,
+        grid: bool = True,
+        colors: Union[list, tuple] = None,
+    ):
+        """
+        This function is used to initialize the curve plot.
+
+        Parameters
+        ----------
+        figure_name: str
+            The name of the figure.
+        subplot_labels: Union[list, str]
+            The labels of the subplots.
+        nb_subplot: int
+            The number of subplot.
+        x_labels: Union[list, str]
+            The labels of the x axis.
+        y_labels: Union[list, str]
+            The labels of the y axis.
+        grid: bool
+            If True, the grid is displayed.
+        colors: Union[list, tuple]
+            The colors of the curves.
+        """
+        # --- Curve graph --- #
+        nb_line = 4
+        nb_col = ceil(nb_subplot / nb_line)
+        line_count = 0
+        for subplot in range(nb_subplot):
+            self.ptr.append(0)
+            self.size_to_append.append(0)
+            if line_count == nb_col:
+                self.win.nextRow()
+                line_count = 0
+            self.plots.append(self.win.addPlot(title=subplot_labels[subplot]))
+            self.plots[-1].setDownsampling(mode="peak")
+            self.plots[-1].setClipToView(False)
+            self.curves.append(self.plots[-1].plot([], pen=colors[subplot], name="Blue curve"))
+            self.plots[-1].setLabel("bottom", x_labels[subplot])
+            self.plots[-1].setLabel("left", y_labels[subplot])
+            self.plots[-1].showGrid(x=grid, y=grid)
+            line_count += 1
+
     def _init_progress_bar(
         self,
         figure_name: str = "Figure",
@@ -363,9 +412,10 @@ class LivePlot:
             The data to plot.
         """
         if len(data) != len(self.curves):
-            raise ValueError(
-                f"The number of data ({len(data)}) is different from the number of curves ({len(self.curves)})."
-            )
+            self._add_curve()
+            # raise ValueError(
+            #     f"The number of data ({len(data)}) is different from the number of curves ({len(self.curves)})."
+            # )
         for i in range(len(data)):
             if self.ptr[i] == 0:
                 self.size_to_append[i] = data[i].shape[1]

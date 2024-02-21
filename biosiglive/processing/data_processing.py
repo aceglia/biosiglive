@@ -146,7 +146,7 @@ class GenericProcessing:
             Moving average.
         """
         for i in range(data.shape[0]):
-            empty_ma[i, :] = convolve(data[i, :], window, mode="same", method="fft")
+            empty_ma[i, :] = convolve(data[i, :], window, mode="same", method="auto")
         return empty_ma
 
     @staticmethod

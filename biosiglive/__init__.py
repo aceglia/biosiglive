@@ -7,7 +7,7 @@ from .interfaces.tcp_interface import TcpClient
 from .interfaces.param import Param, Device, MarkerSet
 
 
-from .file_io.save_and_load import load, save
+from .file_io.save_and_load import load, save, compress
 
 from .processing.data_processing import RealTimeProcessing, OfflineProcessing, GenericProcessing
 from .processing.msk_functions import MskFunctions

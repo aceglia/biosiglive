@@ -107,7 +107,11 @@ class ViconClient(GenericInterface):
         )
         device_tmp.interface = self.interface_type
         if self.vicon_client:
-            device_tmp.infos = self.vicon_client.GetDeviceOutputDetails(name)
+            names = self.vicon_client.GetDeviceNames()
+            try:
+                device_tmp.infos = self.vicon_client.GetDeviceOutputDetails(name)
+            except:
+                raise RuntimeError(f"Device {name} not found on Vicon. Available devices are {names}.")
         else:
             device_tmp.infos = None
         device_tmp.data_windows = data_buffer_size
