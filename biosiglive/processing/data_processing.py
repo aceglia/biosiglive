@@ -326,6 +326,7 @@ class RealTimeProcessing(GenericProcessing):
         absolute_value=True,
         normalization=False,
         moving_average_window=200,
+        window_weights: list =None,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -351,6 +352,8 @@ class RealTimeProcessing(GenericProcessing):
             True if apply normalization.
         moving_average_window : int
             Moving average window.
+        window_weights : list
+            Weights for the moving average.
 
         Returns
         -------
@@ -400,7 +403,7 @@ class RealTimeProcessing(GenericProcessing):
 
         else:
             self.raw_data_buffer = np.append(
-                self.raw_data_buffer[:, -self.processing_window + emg_sample :], emg_data, axis=1
+                self.raw_data_buffer[:, -self.processing_window + emg_sample:], emg_data, axis=1
             )
             emg_proc_tmp = self.process_generic_signal(
                 self.raw_data_buffer,
@@ -418,7 +421,9 @@ class RealTimeProcessing(GenericProcessing):
                     / quot
                 )
             elif moving_average:
-                average = np.median(emg_proc_tmp[:, -ma_win:], axis=1).reshape(-1, 1)
+                weights = window_weights if window_weights is not None else np.ones(ma_win)
+                total_value_to_divide = sum(weights)
+                average = (np.dot(emg_proc_tmp, weights) / total_value_to_divide)[:, None]
                 self.processed_data_buffer = np.append(self.processed_data_buffer[:, 1:], average / quot, axis=1)
         self.process_time.append(time.time() - tic)
         return self.processed_data_buffer
