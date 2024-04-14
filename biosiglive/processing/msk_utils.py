@@ -28,7 +28,7 @@ def _set_solver_options(ocp, solver_options=None):
     ocp.solver_options.print_level = 0
     ocp.solver_options.tol = 1e-3
     ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # SQP_RTI, SQP
-    ocp.solver_options.levenberg_marquardt = 90.0
+    # ocp.solver_options.levenberg_marquardt = 90.0
     ocp.solver_options.nlp_solver_max_iter = 1000
     ocp.solver_options.qp_solver_iter_max = 4000
     ocp.solver_options.qp_tol = 5e-5
@@ -76,18 +76,20 @@ def _init_acados(model, torque_tracking_as_objective, mjt_func, use_residual_tor
     lh = tau[:, 0]
     uh = tau[:, 0]
     if use_residual_torque:
-        # lb_torque = np.zeros((q.shape[0]))
-        # ub_torque = np.zeros((q.shape[0]))
-        # lb_torque[6:11] = -30 * scaling_factor[1] * np.ones((5))
-        # ub_torque[6:11] = 30 * scaling_factor[1] * np.ones((5))
-        lb_torque = -5 * scaling_factor[1] * np.ones((q.shape[0]))
-        ub_torque = 5 * scaling_factor[1] * np.ones((q.shape[0]))
+        lb_torque = - np.ones((q.shape[0])) * 5 * scaling_factor[1]
+        ub_torque = np.ones((q.shape[0])) * 5 * scaling_factor[1]
+        lb_torque[:5] = -20 * scaling_factor[1] * np.ones((5))
+        ub_torque[:5] = 20* scaling_factor[1] * np.ones((5))
+        # lb_torque[-1:] = -20 * scaling_factor[1] * np.ones((1))
+        # ub_torque[-1:] = 20 * scaling_factor[1] * np.ones((1))
+        # lb_torque = -20 * scaling_factor[1] * np.ones((q.shape[0]))
+        # ub_torque = 20 * scaling_factor[1] * np.ones((q.shape[0]))
         lbx = np.hstack((lbx, lb_torque))
         ubx = np.hstack((ubx, ub_torque))
     ocp = AcadosOcp()
     ocp.model = AcadosModel()
     ocp = _set_solver_options(ocp, solver_options)
-    ocp, weigth_list  = _init_cost_function(model, x, mjt_func, torque_tracking_as_objective, pas_tau, ocp,
+    ocp, weigth_list = _init_cost_function(model, x, mjt_func, torque_tracking_as_objective, pas_tau, ocp,
                               q, qdot, tau, scaling_factor, muscle_track_idx, weight)
     x = ca.vertcat(x, pas_tau)
     p = ca.vertcat(q, qdot)
@@ -134,18 +136,30 @@ def _init_cost_function(model, x, ca_function, torque_tracking_as_objective, pas
         mus_tau = ca_function(x[i * model.nbMuscles(): (i + 1) * model.nbMuscles()] / scaling_factor[0],
                               q[:, i],
                               qdot[:, i])
-        if J is None:
-            J = x[i * model.nbMuscles(): (i + 1) * model.nbMuscles()] ** 2
-            names_J.append(["act"] * model.nbMuscles())
-        else:
-            J = ca.vertcat(J, x[i * model.nbMuscles(): (i + 1) * model.nbMuscles()] ** 2)
-            names_J.append(["act"] * model.nbMuscles())
+
         for m in range(model.nbMuscles()):
             if muscle_track_idx and m in muscle_track_idx:
                 idx = muscle_track_idx.index(m)
-                J = ca.vertcat(J, ((x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1]
-                                    / scaling_factor[0]) - ca.SX(emg[idx, i])) ** 2)
-                names_J.append(["tracking_emg"])
+                if J is None:
+                    J = ((x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1]
+                          / scaling_factor[0]) - ca.SX(emg[idx, i])) ** 2
+                    names_J.append(["tracking_emg"])
+                    # J = ca.vertcat(J, x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2)
+                    # names_J.append(["act"])
+                else:
+                    J = ca.vertcat(J, ((x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1]
+                                        / scaling_factor[0]) - ca.SX(emg[idx, i])) ** 2)
+                    names_J.append(["tracking_emg"])
+                    # J = ca.vertcat(J, x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2)
+                    # names_J.append(["act"])
+            else:
+                if J is None:
+                    J = x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2
+                    names_J.append(["act"])
+                else:
+                    J = ca.vertcat(J, x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2)
+                    names_J.append(["act"])
+
         J = ca.vertcat(J, pas_tau ** 2)
         names_J.append(["pas_tau"] * model.nbQ())
         if torque_tracking_as_objective:
