@@ -141,20 +141,24 @@ class MskFunctions:
             q = biorbd.GeneralizedCoordinates(self.model)
             q_dot = biorbd.GeneralizedVelocity(self.model)
             qd_dot = biorbd.GeneralizedAcceleration(self.model)
+            # for i in range(markers.shape[2]):
+            #     markers_over_frames.append([biorbd.NodeSegment(m) for m in markers[:, :, i].T])
+
+            q_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
+            q_dot_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
+            q_ddot_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
+
             for i in range(markers.shape[2]):
-                markers_over_frames.append([biorbd.NodeSegment(m) for m in markers[:, :, i].T])
-
-            q_recons = np.zeros((self.model.nbQ(), len(markers_over_frames)))
-            q_dot_recons = np.zeros((self.model.nbQ(), len(markers_over_frames)))
-
-            for i, targetMarkers in enumerate(markers_over_frames):
-                self.kalman.reconstructFrame(self.model, targetMarkers, q, q_dot, qd_dot)
+                target_markers = [biorbd.NodeSegment(m) for m in markers[:, :, i].T]
+                self.kalman.reconstructFrame(self.model, target_markers, q, q_dot, qd_dot)
                 q_recons[:, i] = q.to_array()
                 q_dot_recons[:, i] = q_dot.to_array()
+                q_ddot_recons[:, i] = qd_dot.to_array()
+                # self.kalman.setInitState(q_recons[:, i], q_dot_recons[:, i], q_ddot_recons[:, i])
 
         elif method == InverseKinematicsMethods.BiorbdLeastSquare:
             ik = biorbd.InverseKinematics(self.model, markers)
-            ik.solve("only_lm")
+            ik.solve("trf")
             q_recons = ik.q
             q_dot_recons = np.array([0] * ik.nb_q)[:, np.newaxis]
 

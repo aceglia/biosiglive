@@ -9,7 +9,10 @@ except ModuleNotFoundError:
     pass
 import numpy as np
 from typing import Union
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    pass
 from math import ceil
 from ..enums import PlotType
 import time

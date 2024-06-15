@@ -2,7 +2,6 @@
 This file contains the functions for data processing (offline and in real-time). Both class herites
  from the GenericProcessing class.
 """
-
 from scipy.signal import butter, lfilter, filtfilt, convolve
 import numpy as np
 import os

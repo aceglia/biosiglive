@@ -258,6 +258,9 @@ class ViconClient(GenericInterface):
         markers_data: list
             All asked markers data.
         """
+        if get_frame:
+            self.get_frame()
+
         if len(self.marker_sets) == 0:
             raise ValueError("No marker set has been added to the Vicon system.")
         if not self.is_initialized:
