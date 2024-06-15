@@ -42,6 +42,7 @@ class MskFunctions:
         system_rate: int
             The working frequency of the input data (markers or joint kinematics).
         """
+        self.weigh_list = None
         self.model_all_dofs = None
         self.ca_model = None
         self.once_compile = None
@@ -86,6 +87,7 @@ class MskFunctions:
             kalman: callable = None,
             custom_function: callable = None,
             initial_guess: Union[np.ndarray, list] = None,
+            qdot_from_finite_difference: bool = False,
             **kwargs,
     ) -> tuple:
         """
@@ -105,6 +107,8 @@ class MskFunctions:
             Custom function to use.
         initial_guess: Union[np.ndarray, list]
             Initial generalized coordinate, velocity and acceleration for the kalman filter
+        qdot_from_finite_difference: bool
+            If true the velocity will be computed using a finite difference method.
 
         Returns
         -------
@@ -117,7 +121,8 @@ class MskFunctions:
                 method = InverseKinematicsMethods(method)
             else:
                 raise ValueError(f"Method {method} is not supported")
-
+        if qdot_from_finite_difference and markers.shape[2] < 2:
+            raise ValueError("You must have at least two frames to compute the velocity using finite difference.")
         if method == InverseKinematicsMethods.BiorbdKalman:
             self.kalman = kalman if kalman else self.kalman
             if not kalman and not self.kalman:
@@ -154,30 +159,37 @@ class MskFunctions:
                 q_recons[:, i] = q.to_array()
                 q_dot_recons[:, i] = q_dot.to_array()
                 q_ddot_recons[:, i] = qd_dot.to_array()
-                # self.kalman.setInitState(q_recons[:, i], q_dot_recons[:, i], q_ddot_recons[:, i])
-
         elif method == InverseKinematicsMethods.BiorbdLeastSquare:
             ik = biorbd.InverseKinematics(self.model, markers)
             ik.solve("trf")
             q_recons = ik.q
             q_dot_recons = np.array([0] * ik.nb_q)[:, np.newaxis]
+            q_ddot_recons = np.array([0] * ik.nb_q)[:, np.newaxis]
 
         elif method == InverseKinematicsMethods.Custom:
             if not custom_function:
                 raise ValueError("No custom function provided.")
             q_recons = custom_function(markers, **kwargs)
-            q_dot_recons = np.zerros((q_recons.shape()))
+            q_dot_recons = np.zeros((q_recons.shape()))
+            q_ddot_recons = np.zeros((q_recons.shape()))
         else:
             raise ValueError(f"Method {method} is not supported")
+
+        if qdot_from_finite_difference:
+            q_dot_recons = np.zeros_like(q_recons)
+            for i in range(1, q_recons.shape[1]-1):
+                q_dot_recons[:, i] = (q_recons[:, i+1] - q_recons[:, i-1]) / (2 / self.system_rate)
+
         if len(self.kin_buffer) == 0:
-            self.kin_buffer = [q_recons, q_dot_recons]
+            self.kin_buffer = [q_recons, q_dot_recons, q_ddot_recons]
         else:
             self.kin_buffer[0] = np.append(self.kin_buffer[0], q_recons, axis=1)
             self.kin_buffer[1] = np.append(self.kin_buffer[1], q_dot_recons, axis=1)
+            self.kin_buffer[2] = np.append(self.kin_buffer[2], q_ddot_recons, axis=1)
         for i in range(len(self.kin_buffer)):
             self.kin_buffer[i] = self.kin_buffer[i][:, -self.data_windows:]
         self.process_time.append(time.time() - tic)
-        return self.kin_buffer[0].copy(), self.kin_buffer[1].copy()
+        return self.kin_buffer[0].copy(), self.kin_buffer[1].copy(), self.kin_buffer[2].copy()
 
     def compute_direct_kinematics(self, states: np.ndarray) -> np.ndarray:
         """
@@ -227,6 +239,7 @@ class MskFunctions:
                                  windows_length: Union[list, int] = None,
                                  positions_from_inverse_kinematics: bool = False,
                                  velocities_from_inverse_kinematics: bool = False,
+                                 accelerations_from_inverse_kinematics: bool = False,
                                  external_load: any = None
                                  ) -> np.ndarray:
         """
@@ -277,6 +290,8 @@ class MskFunctions:
             states_init[0] = self.kin_buffer[0][:, -1:]
         if velocities_from_inverse_kinematics:
             states_init[1] = self.kin_buffer[1][:, -1:]
+        if accelerations_from_inverse_kinematics:
+            states_init[2] = self.kin_buffer[2][:, -1:]
         if not positions_from_inverse_kinematics and not joint_positions:
             raise RuntimeError("Please provide at lease the joint position to compute the inverse dynamics.")
         has_changed = self._state_idx_to_process != state_idx_to_process
@@ -284,8 +299,8 @@ class MskFunctions:
         if len(state_idx_to_process) != 0:
             states_init = self._filter_states(states_init, state_idx_to_process, windows_length, lowpass_frequency,
                                               has_changed)
-        states = self._check_states(states_init)
 
+        states = self._check_states(states_init)
         tau = np.zeros((self.model.nbQ(), 1))
         # for i in range(tau.shape[1]):
         if external_load is not None:
@@ -320,6 +335,7 @@ class MskFunctions:
                                     data_from_inverse_dynamics: bool = False,
                                     solver_options: dict = None,
                                     compile_only_first_call: bool = False,
+                                    print_optimization_status: bool = False
                                     ):
         """
         Compute the static optimization using the model kinematics and a biorbd model type.
@@ -357,14 +373,15 @@ class MskFunctions:
             The solver options to use for the acados solver
         compile_only_first_call: bool
             If true the c code will be compiled only for the first call
-
+        print_optimization_status: bool
+            If true the status of the optimization will be printed
         Returns
         -------
         tuple:
             The optimal activation and torque for each muscles
         """
         if muscle_track_idx and emg is None:
-            raise RuntimeError("If you want to track muscles, you must provide the emg data.")
+            muscle_track_idx = None
         if emg is not None and not muscle_track_idx:
             raise RuntimeError("If you want to track muscles, you must provide the muscle index to track.")
 
@@ -404,7 +421,7 @@ class MskFunctions:
         compile_c_code = not self.once_compile if compile_only_first_call else compile_c_code
         if not self.ocp_solver or compile_c_code:
             if not self.ocp:
-                self.ocp = _init_acados(self.ca_model, torque_tracking_as_objective, self.mjt_funct,
+                self.ocp, self.weigh_list = _init_acados(self.ca_model, torque_tracking_as_objective, self.mjt_funct,
                                         use_residual_torque,
                                         scaling_factor, muscle_track_idx, weight, solver_options)
 
@@ -412,13 +429,19 @@ class MskFunctions:
                                               build=compile_c_code, generate=True)
             self.once_compile = True
 
-        target = np.zeros((self.ca_model.nbMuscles() + self.ca_model.nbQ() * 2))
-        target = np.append(target, emg) if emg is not None else target
+        target = np.zeros((len(self.weigh_list)))
+        if emg is not None:
+            target[np.where(np.array(self.weigh_list) == "tracking_emg")] = emg[:, 0]
         self.ocp_solver = _update_solver(self.ocp_solver, target, x0, q, q_dot, tau,
                                          torque_as_objective=torque_tracking_as_objective)
 
         self.ocp_solver.solve()
         solution = self.ocp_solver.get(0, "x")
+        if print_optimization_status:
+            print("---------- QP Solver statistics ----------")
+            self.ocp_solver.print_statistics()
+            print("Residuals: ", self.ocp_solver.get_stats("residuals"))
+            print("Optimization status: ", self.ocp_solver.status, "\n")
         muscle_activations = solution[:self.ca_model.nbMuscles() * q.shape[1]] / scaling_factor[0]
         residual_torque = solution[self.ca_model.nbMuscles() * q.shape[1]:] / scaling_factor[1]
         self.act_buffer = np.append(
@@ -549,6 +572,9 @@ class MskFunctions:
                     if express_in_coordinate:
                         segment_idx = self.model_all_dofs.getBodyBiorbdId(final_target_segments[count])
                         new_segment_idx = self.model_all_dofs.getBodyBiorbdId(express_in_coordinate[count])
+                        if new_segment_idx == -1:
+                            raise RuntimeError(f"The segment provided ({express_in_coordinate[count]}) does not exist."
+                                               " Please provide a real segment.")
                         all_trans[count, :, i], all_rot[count, :, i] = _express_in_new_coordinate(
                             all_trans[count, :, i],
                             all_rot[count, :, i],
@@ -557,6 +583,7 @@ class MskFunctions:
                             inv_all_global_jcs_new[new_segment_idx]
                         )
                         count += 1
+
             # print("real_jrf_time:", time.time() - tic)
         return np.concatenate((all_trans, all_rot), axis=0)
 
@@ -578,7 +605,7 @@ class MskFunctions:
                                                     axis=1)
         if all_shapes.count(all_shapes[0]) != len(all_shapes):
             raise RuntimeError("Buffer and given data must have the same size.")
-        if len(idx_to_compute_derivative) > 1:
+        if len(idx_to_compute_derivative) >= 1:
             self.id_state_buffer = self._compute_differential_state(idx_to_compute_derivative)
         return self.id_state_buffer
 
@@ -588,7 +615,7 @@ class MskFunctions:
         states = np.copy(self.id_state_buffer)
         for i in range(1, len(states)):
             if i in idx_to_compute_derivative:
-                derivative = np.diff(states[i - 1][:, -2:], axis=1)[0:] if states[i - 1].shape[1] > 1 else np.zeros(
+                derivative = (states[i - 1][:, -2:-1] - states[i-1][:, -1:]) / (1/self.system_rate) if states[i - 1].shape[1] > 1 else np.zeros(
                     (states[i - 1].shape[0], 1))
                 self.id_state_buffer[i][:, -1:] = derivative
         return self.id_state_buffer
