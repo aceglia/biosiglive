@@ -88,6 +88,8 @@ class MskFunctions:
             custom_function: callable = None,
             initial_guess: Union[np.ndarray, list] = None,
             qdot_from_finite_difference: bool = False,
+            noise_factor=1e-10,
+            error_factor=1e-5,
             **kwargs,
     ) -> tuple:
         """
@@ -127,7 +129,7 @@ class MskFunctions:
             self.kalman = kalman if kalman else self.kalman
             if not kalman and not self.kalman:
                 freq = kalman_freq  # Hz
-                params = biorbd.KalmanParam(freq)
+                params = biorbd.KalmanParam(freq, noiseFactor=noise_factor, errorFactor=error_factor)
                 self.kalman = biorbd.KalmanReconsMarkers(self.model, params)
             if initial_guess:
                 if isinstance(initial_guess, np.ndarray):
@@ -161,7 +163,7 @@ class MskFunctions:
                 q_ddot_recons[:, i] = qd_dot.to_array()
         elif method == InverseKinematicsMethods.BiorbdLeastSquare:
             ik = biorbd.InverseKinematics(self.model, markers)
-            ik.solve("trf")
+            ik.solve("only_lm")
             q_recons = ik.q
             q_dot_recons = np.array([0] * ik.nb_q)[:, np.newaxis]
             q_ddot_recons = np.array([0] * ik.nb_q)[:, np.newaxis]
@@ -334,7 +336,7 @@ class MskFunctions:
                                     x0: np.ndarray = None,
                                     data_from_inverse_dynamics: bool = False,
                                     solver_options: dict = None,
-                                    compile_only_first_call: bool = False,
+                                    compile_only_first_call: bool = True,
                                     print_optimization_status: bool = False
                                     ):
         """
@@ -615,7 +617,7 @@ class MskFunctions:
         states = np.copy(self.id_state_buffer)
         for i in range(1, len(states)):
             if i in idx_to_compute_derivative:
-                derivative = (states[i - 1][:, -2:-1] - states[i-1][:, -1:]) / (1/self.system_rate) if states[i - 1].shape[1] > 1 else np.zeros(
+                derivative = (states[i - 1][:, -2:-1] - states[i-1][:, -1:]) / (2/self.system_rate) if states[i - 1].shape[1] > 1 else np.zeros(
                     (states[i - 1].shape[0], 1))
                 self.id_state_buffer[i][:, -1:] = derivative
         return self.id_state_buffer
@@ -640,6 +642,7 @@ class MskFunctions:
             band_pass_filter=False,
             centering=False,
             absolute_value=False,
+            normalization=False,
             moving_average_window=windows_length,
             lpf_lcut=low_pass_frequency
         )[:, -1:]
