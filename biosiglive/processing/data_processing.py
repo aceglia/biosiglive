@@ -360,12 +360,13 @@ class RealTimeProcessing(GenericProcessing):
            processed EMG data.
 
         """
+        emg_data = emg_data.copy()
         self.update_signal_processing_parameters(**kwargs)
         tic = time.time()
         if low_pass_filter and moving_average:
             raise RuntimeError("Please choose between low-pass filter and moving average.")
         ma_win = moving_average_window
-        if ma_win > self.processing_window:
+        if ma_win > self.processing_window and moving_average:
             raise RuntimeError(f"Moving average windows ({ma_win}) higher than emg windows ({self.processing_window}).")
         emg_sample = emg_data.shape[1]
         if emg_sample == 0:
@@ -420,12 +421,13 @@ class RealTimeProcessing(GenericProcessing):
                     / quot
                 )
             elif moving_average:
-                weights = window_weights if window_weights is not None else np.ones(ma_win)
-                total_value_to_divide = sum(weights)
-                average = (np.dot(emg_proc_tmp, weights) / total_value_to_divide)[:, None]
+                # weights = window_weights if window_weights is not None else np.ones(ma_win)
+                # total_value_to_divide = sum(weights)
+                # average = (np.dot(emg_proc_tmp, weights) / total_value_to_divide)[:, None]
+                average = np.mean(emg_proc_tmp[:, -ma_win:], axis=1)[:, None]
                 self.processed_data_buffer = np.append(self.processed_data_buffer[:, 1:], average / quot, axis=1)
         self.process_time.append(time.time() - tic)
-        return self.processed_data_buffer
+        return self.processed_data_buffer.copy()
 
     def process_imu(
         self,
