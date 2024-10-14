@@ -88,7 +88,7 @@ class MskFunctions:
             custom_function: callable = None,
             initial_guess: Union[np.ndarray, list] = None,
             qdot_from_finite_difference: bool = False,
-            noise_factor=1e-10,
+            noise_factor=1e-8,
             error_factor=1e-5,
             **kwargs,
     ) -> tuple:
@@ -129,7 +129,9 @@ class MskFunctions:
             self.kalman = kalman if kalman else self.kalman
             if not kalman and not self.kalman:
                 freq = kalman_freq  # Hz
-                params = biorbd.KalmanParam(freq, noiseFactor=noise_factor, errorFactor=error_factor)
+                params = biorbd.KalmanParam(freq
+                                            , noiseFactor=noise_factor, errorFactor=error_factor
+                                            )
                 self.kalman = biorbd.KalmanReconsMarkers(self.model, params)
             if initial_guess:
                 if isinstance(initial_guess, np.ndarray):
@@ -148,22 +150,23 @@ class MskFunctions:
             q = biorbd.GeneralizedCoordinates(self.model)
             q_dot = biorbd.GeneralizedVelocity(self.model)
             qd_dot = biorbd.GeneralizedAcceleration(self.model)
-            # for i in range(markers.shape[2]):
-            #     markers_over_frames.append([biorbd.NodeSegment(m) for m in markers[:, :, i].T])
+            for i in range(markers.shape[2]):
+                markers_over_frames.append([biorbd.NodeSegment(m) for m in markers[:, :, i].T])
 
             q_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
             q_dot_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
             q_ddot_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
 
-            for i in range(markers.shape[2]):
-                target_markers = [biorbd.NodeSegment(m) for m in markers[:, :, i].T]
+            for i, target_markers in enumerate(markers_over_frames):
                 self.kalman.reconstructFrame(self.model, target_markers, q, q_dot, qd_dot)
                 q_recons[:, i] = q.to_array()
                 q_dot_recons[:, i] = q_dot.to_array()
                 q_ddot_recons[:, i] = qd_dot.to_array()
         elif method == InverseKinematicsMethods.BiorbdLeastSquare:
             ik = biorbd.InverseKinematics(self.model, markers)
-            ik.solve("only_lm")
+            #ik.solve("only_lm")
+            ik.solve("trf")
+
             q_recons = ik.q
             q_dot_recons = np.array([0] * ik.nb_q)[:, np.newaxis]
             q_ddot_recons = np.array([0] * ik.nb_q)[:, np.newaxis]
