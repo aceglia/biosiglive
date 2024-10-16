@@ -101,7 +101,7 @@ def save(data_dict, data_path, add_data=False, safe=True, compress=False):
             pickle.dump(data_dict, outf, pickle.HIGHEST_PROTOCOL)
 
 
-def load(filename, number_of_line=None, merge=True):
+def load_old(filename, number_of_line=None, merge=True):
     """This function reads data from a pickle file to concatenate them into one dictionary.
 
     Parameters
@@ -167,4 +167,52 @@ def load(filename, number_of_line=None, merge=True):
                         count = 1
                 except EOFError:
                     break
+    return data
+
+
+def load(filename, number_of_line=None, merge=True):
+    """This function reads data from a pickle file to concatenate them into one dictionary.
+
+    Parameters
+    ----------
+    filename : str
+        The path to the file.
+    number_of_line : int
+        The number of lines to read. If None, all lines are read.
+    merge : bool
+        If True, the data are merged into one dictionary. If False, the data are returned as a list of dictionaries.
+
+    Returns
+    -------
+    data : dict
+        The data read from the file.
+
+    """
+    if not Path(filename).is_file():
+        raise FileNotFoundError(f"The file {filename} does not exist.")
+
+    with_gzip = filename.endswith(".gzip")
+    data = None if merge else []
+    limit = number_of_line if number_of_line else float('inf')
+
+    try:
+        return _read_all_lines(filename, limit, data, with_gzip, merge)
+    except Exception as e:
+        raise RuntimeError(f"An error occurred while loading the file: {e}")
+
+
+def _read_all_lines(filename, limit=float("inf"), data=(), with_gzip=False, merge=True):
+    file_open = gzip.open if with_gzip else open
+    with file_open(filename, "rb") as file:
+        count = 0
+        while count < limit:
+            try:
+                data_tmp = pickle.load(file)
+                if not merge:
+                    data.append(data_tmp)
+                else:
+                    data = dic_merger(data, data_tmp) if data else data_tmp
+                count += 1
+            except EOFError:
+                break
     return data

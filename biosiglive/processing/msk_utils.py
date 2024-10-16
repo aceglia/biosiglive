@@ -62,10 +62,13 @@ def _attribute_target_cost_and_constraints_function(model, names_J, tau, torque_
 
 
 def _init_acados(model, torque_tracking_as_objective, mjt_func, use_residual_torque,
-                 scaling_factor, muscle_track_idx, weight, solver_options):
+                 scaling_factor, muscle_track_idx, weight, solver_options, emg=None):
     q = ca.SX.sym("q", model.nbQ())
     qdot = ca.SX.sym("q", model.nbQ())
     tau = ca.SX.sym("tau", model.nbQ())
+    emg_sym = None
+    if emg is not None:
+        emg_sym = ca.SX.sym("emg", emg.shape[0])
     x = ca.SX.sym("x", model.nbMuscles() * q.shape[1])
     if use_residual_torque:
         pas_tau = ca.SX.sym("pas_tau", q.shape[0])
@@ -90,12 +93,14 @@ def _init_acados(model, torque_tracking_as_objective, mjt_func, use_residual_tor
     ocp.model = AcadosModel()
     ocp = _set_solver_options(ocp, solver_options)
     ocp, weigth_list = _init_cost_function(model, x, mjt_func, torque_tracking_as_objective, pas_tau, ocp,
-                              q, qdot, tau, scaling_factor, muscle_track_idx, weight)
+                              q, qdot, tau, emg_sym, scaling_factor, muscle_track_idx, weight)
     x = ca.vertcat(x, pas_tau)
     p = ca.vertcat(q, qdot)
     if use_residual_torque:
         if torque_tracking_as_objective:
             p = ca.vertcat(p, tau)
+    if emg_sym is not None:
+        p = ca.vertcat(p, emg_sym)
     ocp.model.p = p
     ocp.model.disc_dyn_expr = x
     ocp.dims.np = ocp.model.p.size()[0]
@@ -125,10 +130,10 @@ def _init_acados(model, torque_tracking_as_objective, mjt_func, use_residual_tor
 
 
 def _init_cost_function(model, x, ca_function, torque_tracking_as_objective, pas_tau, ocp,
-                        q, qdot, tau, scaling_factor, muscle_track_idx, weights):
+                        q, qdot, tau, emg, scaling_factor, muscle_track_idx, weights):
     if not weights:
         weights = {"tau": 1, "act": 1, "tracking_emg": 1, "pas_tau": 1}
-    emg = np.zeros((15, q.shape[1]))
+    # emg = np.ones((len(muscle_track_idx), q.shape[1])) * 0.7
     names_J = []
     J = None
     constr = None
@@ -138,17 +143,17 @@ def _init_cost_function(model, x, ca_function, torque_tracking_as_objective, pas
                               qdot[:, i])
 
         for m in range(model.nbMuscles()):
-            if muscle_track_idx and m in muscle_track_idx:
+            if emg is not None and (muscle_track_idx and m in muscle_track_idx):
                 idx = muscle_track_idx.index(m)
                 if J is None:
                     J = ((x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1]
-                          / scaling_factor[0]) - ca.SX(emg[idx, i])) ** 2
+                          ) - ca.SX(emg[idx, i])*scaling_factor[0]) ** 2
                     names_J.append(["tracking_emg"])
                     # J = ca.vertcat(J, x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2)
                     # names_J.append(["act"])
                 else:
                     J = ca.vertcat(J, ((x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1]
-                                        / scaling_factor[0]) - ca.SX(emg[idx, i])) ** 2)
+                                    ) - ca.SX(emg[idx, i])*scaling_factor[0]) ** 2)
                     names_J.append(["tracking_emg"])
                     # J = ca.vertcat(J, x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2)
                     # names_J.append(["act"])
@@ -202,18 +207,25 @@ def _init_casadi_function(model):
     return mjt_func
 
 
-def _update_solver(ocp_solver, target, x0, q, qdot, tau=None, torque_as_objective=True):
+def _update_solver(ocp_solver, target, x0, q, qdot, tau=None, torque_as_objective=True, emg=None):
     # update initial guess
     # if x0 is not None:
     #     ocp_solver.set(0, "x", x0)
     # update targets
-    ocp_solver.cost_set(0, "yref", target)
+    # ocp_solver.cost_set(0, "yref", target)
     if not torque_as_objective:
         ocp_solver.constraints_set(0, "lh", tau[:, 0])
         ocp_solver.constraints_set(0, 'uh', tau[:, 0])
-        ocp_solver.set(0, "p", np.vstack((q, qdot)))
+        if emg is not None:
+            ocp_solver.set(0, "p", np.vstack((q, qdot, emg)))
+        else:
+            ocp_solver.set(0, "p", np.vstack((q, qdot)))
+
     else:
-        ocp_solver.set(0, "p", np.vstack((q, qdot, tau)))
+        if emg is not None:
+            ocp_solver.set(0, "p", np.vstack((q, qdot, tau, emg)))
+        else:
+            ocp_solver.set(0, "p", np.vstack((q, qdot, tau)))
     return ocp_solver
 
 

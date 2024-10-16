@@ -428,16 +428,17 @@ class MskFunctions:
             if not self.ocp:
                 self.ocp, self.weigh_list = _init_acados(self.ca_model, torque_tracking_as_objective, self.mjt_funct,
                                         use_residual_torque,
-                                        scaling_factor, muscle_track_idx, weight, solver_options)
+                                        scaling_factor, muscle_track_idx, weight, solver_options,
+                                                         emg=emg)
 
             self.ocp_solver = AcadosOcpSolver(self.ocp, json_file=f'{self.ocp.model.name}.json',
                                               build=compile_c_code, generate=True)
             self.once_compile = True
 
         target = np.zeros((len(self.weigh_list)))
-        if emg is not None:
-            target[np.where(np.array(self.weigh_list) == "tracking_emg")] = emg[:, 0]
-        self.ocp_solver = _update_solver(self.ocp_solver, target, x0, q, q_dot, tau,
+        # if emg is not None:
+        #     target[np.where(np.array(self.weigh_list) == "tracking_emg")] = emg[:, 0]
+        self.ocp_solver = _update_solver(self.ocp_solver, target, x0, q, q_dot, tau, emg=emg,
                                          torque_as_objective=torque_tracking_as_objective)
 
         self.ocp_solver.solve()
