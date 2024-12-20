@@ -150,15 +150,13 @@ class MskFunctions:
             q = biorbd.GeneralizedCoordinates(self.model)
             q_dot = biorbd.GeneralizedVelocity(self.model)
             qd_dot = biorbd.GeneralizedAcceleration(self.model)
-            for i in range(markers.shape[2]):
-                markers_over_frames.append([biorbd.NodeSegment(m) for m in markers[:, :, i].T])
 
             q_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
             q_dot_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
             q_ddot_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
 
-            for i, target_markers in enumerate(markers_over_frames):
-                self.kalman.reconstructFrame(self.model, target_markers, q, q_dot, qd_dot)
+            for i in range(markers.shape[2]):
+                self.kalman.reconstructFrame(self.model, [biorbd.NodeSegment(m) for m in markers[:, :, i].T], q, q_dot, qd_dot)
                 q_recons[:, i] = q.to_array()
                 q_dot_recons[:, i] = q_dot.to_array()
                 q_ddot_recons[:, i] = qd_dot.to_array()
