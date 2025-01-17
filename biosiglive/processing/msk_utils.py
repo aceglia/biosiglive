@@ -6,10 +6,12 @@ except ModuleNotFoundError:
     pass
 try:
     from acados_template import AcadosOcp, AcadosModel, AcadosOcpSolver
+
     acados_package = True
 except ModuleNotFoundError:
     acados_package = False
 from scipy import linalg
+
 try:
     import biorbd
 except:
@@ -17,17 +19,17 @@ except:
 
 
 def _set_solver_options(ocp, solver_options=None):
-    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_OSQP'  # 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
+    ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_OSQP"  # 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
     # PARTIAL_CONDENSING_HPIPM, FULL_CONDENSING_QPOASES, FULL_CONDENSING_HPIPM,
     # PARTIAL_CONDENSING_QPDUNES, PARTIAL_CONDENSING_OSQP
-    ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # GAUSS_NEWTON, EXACT
-    ocp.solver_options.integrator_type = 'DISCRETE'
+    ocp.solver_options.hessian_approx = "GAUSS_NEWTON"  # GAUSS_NEWTON, EXACT
+    ocp.solver_options.integrator_type = "DISCRETE"
     ocp.solver_options.sim_method_num_steps = 1
     ocp.solver_options.sim_method_num_stages = 1
     ocp.solver_options.sim_method_jac_reuse = 1
     ocp.solver_options.print_level = 0
     ocp.solver_options.tol = 1e-3
-    ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # SQP_RTI, SQP
+    ocp.solver_options.nlp_solver_type = "SQP_RTI"  # SQP_RTI, SQP
     # ocp.solver_options.levenberg_marquardt = 90.0
     ocp.solver_options.nlp_solver_max_iter = 1000
     ocp.solver_options.qp_solver_iter_max = 4000
@@ -61,8 +63,17 @@ def _attribute_target_cost_and_constraints_function(model, names_J, tau, torque_
     return y_ref_start
 
 
-def _init_acados(model, torque_tracking_as_objective, mjt_func, use_residual_torque,
-                 scaling_factor, muscle_track_idx, weight, solver_options, emg=None):
+def _init_acados(
+    model,
+    torque_tracking_as_objective,
+    mjt_func,
+    use_residual_torque,
+    scaling_factor,
+    muscle_track_idx,
+    weight,
+    solver_options,
+    emg=None,
+):
     q = ca.SX.sym("q", model.nbQ())
     qdot = ca.SX.sym("q", model.nbQ())
     tau = ca.SX.sym("tau", model.nbQ())
@@ -79,10 +90,10 @@ def _init_acados(model, torque_tracking_as_objective, mjt_func, use_residual_tor
     lh = tau[:, 0]
     uh = tau[:, 0]
     if use_residual_torque:
-        lb_torque = - np.ones((q.shape[0])) * 5 * scaling_factor[1]
+        lb_torque = -np.ones((q.shape[0])) * 5 * scaling_factor[1]
         ub_torque = np.ones((q.shape[0])) * 5 * scaling_factor[1]
         lb_torque[:5] = -20 * scaling_factor[1] * np.ones((5))
-        ub_torque[:5] = 20* scaling_factor[1] * np.ones((5))
+        ub_torque[:5] = 20 * scaling_factor[1] * np.ones((5))
         # lb_torque[-1:] = -20 * scaling_factor[1] * np.ones((1))
         # ub_torque[-1:] = 20 * scaling_factor[1] * np.ones((1))
         # lb_torque = -20 * scaling_factor[1] * np.ones((q.shape[0]))
@@ -92,8 +103,21 @@ def _init_acados(model, torque_tracking_as_objective, mjt_func, use_residual_tor
     ocp = AcadosOcp()
     ocp.model = AcadosModel()
     ocp = _set_solver_options(ocp, solver_options)
-    ocp, weigth_list = _init_cost_function(model, x, mjt_func, torque_tracking_as_objective, pas_tau, ocp,
-                              q, qdot, tau, emg_sym, scaling_factor, muscle_track_idx, weight)
+    ocp, weigth_list = _init_cost_function(
+        model,
+        x,
+        mjt_func,
+        torque_tracking_as_objective,
+        pas_tau,
+        ocp,
+        q,
+        qdot,
+        tau,
+        emg_sym,
+        scaling_factor,
+        muscle_track_idx,
+        weight,
+    )
     x = ca.vertcat(x, pas_tau)
     p = ca.vertcat(q, qdot)
     if use_residual_torque:
@@ -129,8 +153,21 @@ def _init_acados(model, torque_tracking_as_objective, mjt_func, use_residual_tor
     return ocp, weigth_list
 
 
-def _init_cost_function(model, x, ca_function, torque_tracking_as_objective, pas_tau, ocp,
-                        q, qdot, tau, emg, scaling_factor, muscle_track_idx, weights):
+def _init_cost_function(
+    model,
+    x,
+    ca_function,
+    torque_tracking_as_objective,
+    pas_tau,
+    ocp,
+    q,
+    qdot,
+    tau,
+    emg,
+    scaling_factor,
+    muscle_track_idx,
+    weights,
+):
     if not weights:
         weights = {"tau": 1, "act": 1, "tracking_emg": 1, "pas_tau": 1}
     # emg = np.ones((len(muscle_track_idx), q.shape[1])) * 0.7
@@ -138,41 +175,49 @@ def _init_cost_function(model, x, ca_function, torque_tracking_as_objective, pas
     J = None
     constr = None
     for i in range(q.shape[1]):
-        mus_tau = ca_function(x[i * model.nbMuscles(): (i + 1) * model.nbMuscles()] / scaling_factor[0],
-                              q[:, i],
-                              qdot[:, i])
+        mus_tau = ca_function(
+            x[i * model.nbMuscles() : (i + 1) * model.nbMuscles()] / scaling_factor[0], q[:, i], qdot[:, i]
+        )
 
         for m in range(model.nbMuscles()):
             if emg is not None and (muscle_track_idx and m in muscle_track_idx):
                 idx = muscle_track_idx.index(m)
                 if J is None:
-                    J = ((x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1]
-                          ) - ca.SX(emg[idx, i])*scaling_factor[0]) ** 2
+                    J = (
+                        (x[i * model.nbMuscles() + m : i * model.nbMuscles() + m + 1])
+                        - ca.SX(emg[idx, i]) * scaling_factor[0]
+                    ) ** 2
                     names_J.append(["tracking_emg"])
                     # J = ca.vertcat(J, x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2)
                     # names_J.append(["act"])
                 else:
-                    J = ca.vertcat(J, ((x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1]
-                                    ) - ca.SX(emg[idx, i])*scaling_factor[0]) ** 2)
+                    J = ca.vertcat(
+                        J,
+                        (
+                            (x[i * model.nbMuscles() + m : i * model.nbMuscles() + m + 1])
+                            - ca.SX(emg[idx, i]) * scaling_factor[0]
+                        )
+                        ** 2,
+                    )
                     names_J.append(["tracking_emg"])
                     # J = ca.vertcat(J, x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2)
                     # names_J.append(["act"])
             else:
                 if J is None:
-                    J = x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2
+                    J = x[i * model.nbMuscles() + m : i * model.nbMuscles() + m + 1] ** 2
                     names_J.append(["act"])
                 else:
-                    J = ca.vertcat(J, x[i * model.nbMuscles() + m: i * model.nbMuscles() + m + 1] ** 2)
+                    J = ca.vertcat(J, x[i * model.nbMuscles() + m : i * model.nbMuscles() + m + 1] ** 2)
                     names_J.append(["act"])
 
-        J = ca.vertcat(J, pas_tau ** 2)
+        J = ca.vertcat(J, pas_tau**2)
         names_J.append(["pas_tau"] * model.nbQ())
         if torque_tracking_as_objective:
             J = ca.vertcat(J, (tau - (mus_tau + pas_tau / scaling_factor[1])) ** 2)
             names_J.append(["tau"] * model.nbQ())
         else:
             if constr is None:
-                constr = (mus_tau + pas_tau)
+                constr = mus_tau + pas_tau
             else:
                 constr = ca.vertcat(constr, (mus_tau + pas_tau))
 
@@ -215,7 +260,7 @@ def _update_solver(ocp_solver, target, x0, q, qdot, tau=None, torque_as_objectiv
     # ocp_solver.cost_set(0, "yref", target)
     if not torque_as_objective:
         ocp_solver.constraints_set(0, "lh", tau[:, 0])
-        ocp_solver.constraints_set(0, 'uh', tau[:, 0])
+        ocp_solver.constraints_set(0, "uh", tau[:, 0])
         if emg is not None:
             ocp_solver.set(0, "p", np.vstack((q, qdot, emg)))
         else:
@@ -245,16 +290,18 @@ def _create_new_model(model, segments_names):
             if len(rot + trans) != 0:
                 for j in range(len(rot + trans)):
                     q_non_zero_idx.append(nb_dof + j)
-                model_empty = __add_segment_to_model(model_empty, model.segment(i), rot, trans,
-                                                     name=model.segment(i).name().to_string() + "_init_dof")
+                model_empty = __add_segment_to_model(
+                    model_empty, model.segment(i), rot, trans, name=model.segment(i).name().to_string() + "_init_dof"
+                )
                 last_parent = model.segment(i).name().to_string() + "_init_dof"
             nb_dof += len(rot + trans)
             rot = trans = "xyz"
             ordered_dof_prox_to_dist.append(model.segment(i).name().to_string())
             ordered_dof_prox_to_dist_idx.append([nb_dof + k for k in range(6)])
             nb_dof += 6
-            model_empty = __add_segment_to_model(model_empty, model.segment(i), rot, trans, parent_str=last_parent,
-                                                 RT=biorbd.RotoTrans())
+            model_empty = __add_segment_to_model(
+                model_empty, model.segment(i), rot, trans, parent_str=last_parent, RT=biorbd.RotoTrans()
+            )
         else:
             rot = model.segment(i).seqR().to_string()
             trans = model.segment(i).seqT().to_string()
@@ -309,24 +356,16 @@ def _express_in_new_coordinate(trans, rot, new_application, all_global_jcs_old, 
 
 def __add_segment_to_model(model, segment, rot, trans, name=None, RT=None, parent_str=None):
     (name_tmp, parent_str_tmp, rot, trans, QRanges, QDotRanges, QDDotRanges, characteristics, RT_tmp) = (
-    segment.name().to_string(),
-    segment.parent().to_string(),
-    rot,
-    trans,
-    [biorbd.Range(-3,
-                  3)] * (
-            len(rot) + len(
-        trans)),
-    [biorbd.Range(-3 * 10,
-                  3 * 10)] * (
-            len(rot) + len(
-        trans)),
-    [biorbd.Range(-3 * 100,
-                  3 * 100)] * (
-            len(rot) + len(
-        trans)),
-    segment.characteristics(),
-    segment.localJCS())
+        segment.name().to_string(),
+        segment.parent().to_string(),
+        rot,
+        trans,
+        [biorbd.Range(-3, 3)] * (len(rot) + len(trans)),
+        [biorbd.Range(-3 * 10, 3 * 10)] * (len(rot) + len(trans)),
+        [biorbd.Range(-3 * 100, 3 * 100)] * (len(rot) + len(trans)),
+        segment.characteristics(),
+        segment.localJCS(),
+    )
     name = name if name else name_tmp
     RT = RT if RT else RT_tmp
     parent_str = parent_str if parent_str else parent_str_tmp
@@ -375,9 +414,11 @@ class ExternalLoad:
         if self.force.shape[0] != 6:
             raise ValueError("The force must be a 6xn vector")
         if applied_on_body != express_in_coordinate and express_in_coordinate != "ground":
-            raise NotImplementedError("You can only either express the force in the ground or"
-                                      " on the body where the force is applied."
-                                      f"You have {applied_on_body} and {express_in_coordinate}")
+            raise NotImplementedError(
+                "You can only either express the force in the ground or"
+                " on the body where the force is applied."
+                f"You have {applied_on_body} and {express_in_coordinate}"
+            )
 
 
 class ExternalLoads:
@@ -385,19 +426,16 @@ class ExternalLoads:
         self.external_loads = []
 
     def add_external_load(self, point_of_application, applied_on_body, express_in_coordinate, load, name=None):
-        self.external_loads.append(ExternalLoad(point_of_application,
-                                                applied_on_body,
-                                                load,
-                                                express_in_coordinate,
-                                                name))
+        self.external_loads.append(
+            ExternalLoad(point_of_application, applied_on_body, load, express_in_coordinate, name)
+        )
 
     def update_external_load_value(self, value: np.ndarray, name: str = None, idx: int = None):
         external_load = self.get_external_load(idx, name)
         if isinstance(value, list):
             value = np.array(value)
         if value.shape[0] != 6:
-            raise ValueError(f"The load must be a 6xn vector."
-                             f" You provided a vector of shape {value.shape}.")
+            raise ValueError(f"The load must be a 6xn vector." f" You provided a vector of shape {value.shape}.")
         external_load.force = value
 
     def get_external_load(self, idx: int = None, name: str = None):

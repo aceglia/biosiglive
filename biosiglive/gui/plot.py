@@ -1,6 +1,7 @@
 """
 This file contains all the plot functions to plot the data in live or offline.
 """
+
 try:
     import pyqtgraph as pg
     import pyqtgraph.opengl as gl
@@ -9,6 +10,7 @@ except ModuleNotFoundError:
     pass
 import numpy as np
 from typing import Union
+
 try:
     import matplotlib.pyplot as plt
 except ModuleNotFoundError:

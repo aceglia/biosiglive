@@ -1,6 +1,7 @@
 """
 This file contains a generic interface class to use for any new implemented class.
 """
+
 from .param import *
 from typing import Union
 from ..enums import DeviceType, InverseKinematicsMethods, InterfaceType

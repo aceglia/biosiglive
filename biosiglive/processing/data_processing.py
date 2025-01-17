@@ -2,6 +2,7 @@
 This file contains the functions for data processing (offline and in real-time). Both class herites
  from the GenericProcessing class.
 """
+
 from scipy.signal import butter, lfilter, filtfilt, convolve
 import numpy as np
 import os
@@ -325,7 +326,7 @@ class RealTimeProcessing(GenericProcessing):
         absolute_value=True,
         normalization=False,
         moving_average_window=200,
-        window_weights: list =None,
+        window_weights: list = None,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -403,7 +404,7 @@ class RealTimeProcessing(GenericProcessing):
 
         else:
             self.raw_data_buffer = np.append(
-                self.raw_data_buffer[:, -self.processing_window + emg_sample:], emg_data, axis=1
+                self.raw_data_buffer[:, -self.processing_window + emg_sample :], emg_data, axis=1
             )
             emg_proc_tmp = self.process_generic_signal(
                 self.raw_data_buffer,

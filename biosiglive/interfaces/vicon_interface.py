@@ -1,6 +1,7 @@
 """
 This file contains a wrapper for the python Vicon SDK.
 """
+
 from .param import *
 from typing import Union
 from .generic_interface import GenericInterface

@@ -92,14 +92,26 @@ def read_sto_mot_file(filename):
 
 
 def write_sto_mot_file(q, path):
-    dof_names = ["thorax_tilt", "thorax_list",
-                 "thorax_rotation", "thorax_tx", "thorax_ty", "thorax_tz", "sternoclavicular_left_r1",
-                 "sternoclavicular_left_r2", "sternoclavicular_left_r3", "Acromioclavicular_left_r1",
-                 "Acromioclavicular_left_r2", "Acromioclavicular_left_r3", "shoulder_left_plane", "shoulder_left_ele",
-                 "shoulder_left_rotation", "elbow_left_flexion", "pro_sup_left"]
+    dof_names = [
+        "thorax_tx",
+        "thorax_ty",
+        "thorax_tz",
+        "thorax_tilt",
+        "thorax_list",
+        "thorax_rotation",
+        "sternoclavicular_left_r1",
+        "sternoclavicular_left_r2",
+        "Acromioclavicular_left_r1",
+        "Acromioclavicular_left_r2",
+        "Acromioclavicular_left_r3",
+        "shoulder_left_plane",
+        "shoulder_left_ele",
+        "shoulder_left_rotation",
+        "elbow_left_flexion",
+        "pro_sup_left",
+    ]
     rate = 120
-    headers = _prepare_mot(path,
-                           q.shape[1], q.shape[0], dof_names)
+    headers = _prepare_mot(path, q.shape[1], q.shape[0], dof_names)
     duration = q.shape[1] / rate
     time = np.around(np.linspace(0, duration, q.shape[1]), decimals=3)
     for frame in range(q.shape[1]):
@@ -107,8 +119,8 @@ def write_sto_mot_file(q, path):
         for j in range(q.shape[0]):
             row.append(q[j, frame])
         headers.append(row)
-    with open(path, 'w', newline='') as file:
-        writer = csv.writer(file, delimiter='\t')
+    with open(path, "w", newline="") as file:
+        writer = csv.writer(file, delimiter="\t")
         writer.writerows(headers)
 
 
@@ -119,9 +131,11 @@ def _prepare_mot(output_file, n_rows, n_columns, columns_names):
         [f"nRows = {n_rows}"],
         [f"nColumns = {n_columns + 1}"],
         ["inDegrees=yes"],
-        ["endheader"]
+        ["endheader"],
     ]
-    first_row = ["time", ]
+    first_row = [
+        "time",
+    ]
     for i in range(len(columns_names)):
         first_row.append(columns_names[i])
     headers.append(first_row)
@@ -141,27 +155,31 @@ def get_all_file(participants, data_dir, trial_names=None, to_include=(), to_exc
             continue
         if trial_names:
             to_include += trial_names[p] if isinstance(trial_names[p], list) else trial_names
-        all_files = [file for file in all_files if
-                     any([ext in file for ext in to_include]) and not any([ext in file for ext in to_exclude])]
+        all_files = [
+            file
+            for file in all_files
+            if any([ext in file for ext in to_include]) and not any([ext in file for ext in to_exclude])
+        ]
         final_files = [f"{data_dir}{os.sep}{part}{os.sep}{file}" for file in all_files]
         parts.append([part for _ in final_files])
         all_path.append(final_files)
     return sum(all_path, []), sum(parts, [])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     source = ["dlc_technical_marker"]  # , "vicon_markerless"]#, "vicon", "minimal_vicon"]
-    participants = [f"P{i}" for i in range(12, 13)]  # , "P15", "P16"]#, "P14", "P15", "P16"]
+    participants = [f"P{i}" for i in range(10, 11)]  # , "P15", "P16"]#, "P14", "P15", "P16"]
     participant = participants[0]
     s = source[0]
     # participants.pop(participants.index("P12"))
-    prefix = "/mnt/shared/" if os.name == 'posix' else r"Q:/"
+    prefix = "/mnt/shared/" if os.name == "posix" else r"Q:/"
     data_dir = f"{prefix}Projet_hand_bike_markerless/optim_params/reference_data"
     model_dir = f"{prefix}Projet_hand_bike_markerless/RGBD/"
     files, part = get_all_file(participants, data_dir, to_include=["reference_torque_gear_20_with_technical_marker"])
     data = load(files[0])
-    end_idx = 100
+    end_idx = 1000
     q = data["q_ocp"][..., :end_idx]
+    q[3:, ...] = np.degrees(q[3:, ...])
     q_dot = data["q_dot_ocp"][..., :end_idx]
     tau = data["tau_ocp"][..., :end_idx]
     data_path = "/mnt/shared/Projet_hand_bike_markerless/RGBD"
