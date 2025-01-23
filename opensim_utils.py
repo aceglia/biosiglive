@@ -179,7 +179,14 @@ if __name__ == "__main__":
     data = load(files[0])
     end_idx = 1000
     q = data["q_ocp"][..., :end_idx]
-    q[3:, ...] = np.degrees(q[3:, ...])
+    q_biorbd = q.copy()
+    q_biorbd[3:, ...] = np.degrees(q_biorbd[3:, ...])
+    q[3:, ...] = q_biorbd[3:, ...]
+    q[11, ...] = q_biorbd[11, ...] - 90
+    q[13, ...] = q_biorbd[13, ...] + 90
+    q[3, ...] = q_biorbd[5, ...]
+    q[4, ...] = q_biorbd[3, ...]
+    q[5, ...] = q_biorbd[4, ...]
     q_dot = data["q_dot_ocp"][..., :end_idx]
     tau = data["tau_ocp"][..., :end_idx]
     data_path = "/mnt/shared/Projet_hand_bike_markerless/RGBD"
