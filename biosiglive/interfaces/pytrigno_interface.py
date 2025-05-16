@@ -3,10 +3,7 @@ from .generic_interface import GenericInterface
 from ..enums import DeviceType, InterfaceType, RealTimeProcessingMethod, OfflineProcessingMethod
 from typing import Union
 
-try:
-    import pytrigno
-except ModuleNotFoundError:
-    pass
+import pytrigno
 
 
 class PytrignoClient(GenericInterface):
@@ -176,7 +173,7 @@ class PytrignoClient(GenericInterface):
             if device.device_type == DeviceType.Emg:
                 self.emg_client.append(
                     pytrigno.TrignoEMG(
-                        channel_range=device.device_range, samples_per_read=device.sample, host=self.address, fast_mode=True
+                        channel_range=device.device_range, samples_per_read=device.sample, host=self.address, fast_mode=False
                     )
                 )
                 self.emg_client[-1].start_streaming()
