@@ -176,10 +176,10 @@ class PytrignoClient(GenericInterface):
             if device.device_type == DeviceType.Emg:
                 self.emg_client.append(
                     pytrigno.TrignoEMG(
-                        channel_range=device.device_range, samples_per_read=device.sample, host=self.address
+                        channel_range=device.device_range, samples_per_read=device.sample, host=self.address, fast_mode=True
                     )
                 )
-                self.emg_client[-1].start()
+                self.emg_client[-1].start_streaming()
             elif device.device_type == DeviceType.Imu:
                 imu_range = (device.device_range[0] * 9, device.device_range[1] * 9)
                 self.imu_client.append(

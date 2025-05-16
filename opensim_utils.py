@@ -98,3 +98,7 @@ def _prepare_mot(output_file, n_rows, n_columns, columns_names):
         first_row.append(columns_names[i])
     headers.append(first_row)
     return headers
+
+
+if __name__ == '__main__':
+    data_from_mot = read_sto_mot_file("test.mot")

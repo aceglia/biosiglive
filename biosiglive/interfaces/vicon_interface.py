@@ -236,6 +236,8 @@ class ViconClient(GenericInterface):
                 all_device_data.append(device_data)
         if len(all_device_data) == 1:
             return all_device_data[0]
+        if len(all_device_data) == 0:
+            return None
         return all_device_data
 
     def get_marker_set_data(
