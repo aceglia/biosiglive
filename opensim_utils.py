@@ -1,3 +1,9 @@
+import numpy as np
+import csv
+import glob
+import os
+from biosiglive import load
+
 
 def read_sto_mot_file(filename):
     """
@@ -33,56 +39,90 @@ def read_sto_mot_file(filename):
     return data_mat, names
 
 
-def write_sto_mot_file(all_paths, vicon_markers, depth_markers):
-    all_data = []
-    files = glob.glob(f"{all_paths['trial_dir']}Res*")
-    with open(files[0], 'r') as file:
-        csvreader = csv.reader(file, delimiter='\n')
-        for row in csvreader:
-            all_data.append(np.array(row[0].split("\t")))
-    all_data = np.array(all_data, dtype=float).T
-    data_index = [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14]
-    all_data = all_data[data_index, :]
-    all_data = np.append(all_data, np.zeros((3, all_data.shape[1])), axis=0)
+# def write_sto_mot_file(all_paths, vicon_markers, depth_markers):
+#     all_data = []
+#     files = glob.glob(f"{all_paths['trial_dir']}Res*")
+#     with open(files[0], 'r') as file:
+#         csvreader = csv.reader(file, delimiter='\n')
+#         for row in csvreader:
+#             all_data.append(np.array(row[0].split("\t")))
+#     all_data = np.array(all_data, dtype=float).T
+#     data_index = [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14]
+#     all_data = all_data[data_index, :]
+#     all_data = np.append(all_data, np.zeros((3, all_data.shape[1])), axis=0)
+#
+#     source = ["vicon", "depth"]
+#     rate = [120, 60]
+#     interp_size = [vicon_markers.shape[2], depth_markers.shape[2]]
+#     for i in range(2):
+#         x = np.linspace(0, 100, all_data.shape[1])
+#         f = interp1d(x, all_data)
+#         x_new = np.linspace(0, 100, interp_size[i])
+#         all_data_int = f(x_new)
+#         dic_data = {
+#             "RFX": all_data_int[0, :],
+#             "RFY": all_data_int[1, :],
+#             "RFZ": all_data_int[2, :],
+#             "RMX": all_data_int[3, :],
+#             "RMY": all_data_int[4, :],
+#             "RMZ": all_data_int[5, :],
+#             "LFX": all_data_int[6, :],
+#             "LFY": all_data_int[7, :],
+#             "LFZ": all_data_int[8, :],
+#             "LMX": all_data_int[9, :],
+#             "LMY": all_data_int[10, :],
+#             "LMZ": all_data_int[11, :],
+#             "px": all_data_int[-1, :],
+#             "py": all_data_int[-1, :],
+#             "pz": all_data_int[-1, :]
+#         }
+#         # save(dic_data, f"{dir}/{participant}_{trial}_sensix_{source[i]}.bio")
+#         headers = _prepare_mot(f"{all_paths['trial_dir']}{participant}_{trial}_sensix_{source[i]}.mot",
+#                                all_data_int.shape[1], all_data_int.shape[0], list(dic_data.keys()))
+#         duration = all_data_int.shape[1] / rate[i]
+#         time = np.around(np.linspace(0, duration, all_data_int.shape[1]), decimals=3)
+#         for frame in range(all_data_int.shape[1]):
+#             row = [time[frame]]
+#             for j in range(all_data_int.shape[0]):
+#                 row.append(all_data_int[j, frame])
+#             headers.append(row)
+#         with open(f"{all_paths['trial_dir']}{participant}_{trial}_sensix_{source[i]}.mot", 'w', newline='') as file:
+#             writer = csv.writer(file, delimiter='\t')
+#             writer.writerows(headers)
 
-    source = ["vicon", "depth"]
-    rate = [120, 60]
-    interp_size = [vicon_markers.shape[2], depth_markers.shape[2]]
-    for i in range(2):
-        x = np.linspace(0, 100, all_data.shape[1])
-        f = interp1d(x, all_data)
-        x_new = np.linspace(0, 100, interp_size[i])
-        all_data_int = f(x_new)
-        dic_data = {
-            "RFX": all_data_int[0, :],
-            "RFY": all_data_int[1, :],
-            "RFZ": all_data_int[2, :],
-            "RMX": all_data_int[3, :],
-            "RMY": all_data_int[4, :],
-            "RMZ": all_data_int[5, :],
-            "LFX": all_data_int[6, :],
-            "LFY": all_data_int[7, :],
-            "LFZ": all_data_int[8, :],
-            "LMX": all_data_int[9, :],
-            "LMY": all_data_int[10, :],
-            "LMZ": all_data_int[11, :],
-            "px": all_data_int[-1, :],
-            "py": all_data_int[-1, :],
-            "pz": all_data_int[-1, :]
-        }
-        # save(dic_data, f"{dir}/{participant}_{trial}_sensix_{source[i]}.bio")
-        headers = _prepare_mot(f"{all_paths['trial_dir']}{participant}_{trial}_sensix_{source[i]}.mot",
-                               all_data_int.shape[1], all_data_int.shape[0], list(dic_data.keys()))
-        duration = all_data_int.shape[1] / rate[i]
-        time = np.around(np.linspace(0, duration, all_data_int.shape[1]), decimals=3)
-        for frame in range(all_data_int.shape[1]):
-            row = [time[frame]]
-            for j in range(all_data_int.shape[0]):
-                row.append(all_data_int[j, frame])
-            headers.append(row)
-        with open(f"{all_paths['trial_dir']}{participant}_{trial}_sensix_{source[i]}.mot", 'w', newline='') as file:
-            writer = csv.writer(file, delimiter='\t')
-            writer.writerows(headers)
+
+def write_sto_mot_file(q, path):
+    dof_names = [
+        "thorax_tx",
+        "thorax_ty",
+        "thorax_tz",
+        "thorax_tilt",
+        "thorax_list",
+        "thorax_rotation",
+        "sternoclavicular_left_r1",
+        "sternoclavicular_left_r2",
+        "Acromioclavicular_left_r1",
+        "Acromioclavicular_left_r2",
+        "Acromioclavicular_left_r3",
+        "shoulder_left_plane",
+        "shoulder_left_ele",
+        "shoulder_left_rotation",
+        "elbow_left_flexion",
+        "pro_sup_left",
+    ]
+    rate = 120
+    headers = _prepare_mot(path, q.shape[1], q.shape[0], dof_names)
+    duration = q.shape[1] / rate
+    time = np.around(np.linspace(0, duration, q.shape[1]), decimals=3)
+    for frame in range(q.shape[1]):
+        row = [time[frame]]
+        for j in range(q.shape[0]):
+            row.append(q[j, frame])
+        headers.append(row)
+    with open(path, "w", newline="") as file:
+        writer = csv.writer(file, delimiter="\t")
+        writer.writerows(headers)
+
 
 def _prepare_mot(output_file, n_rows, n_columns, columns_names):
     headers = [
@@ -91,9 +131,11 @@ def _prepare_mot(output_file, n_rows, n_columns, columns_names):
         [f"nRows = {n_rows}"],
         [f"nColumns = {n_columns + 1}"],
         ["inDegrees=yes"],
-        ["endheader"]
+        ["endheader"],
     ]
-    first_row = ["time", ]
+    first_row = [
+        "time",
+    ]
     for i in range(len(columns_names)):
         first_row.append(columns_names[i])
     headers.append(first_row)

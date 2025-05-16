@@ -1,6 +1,7 @@
 """
 This file contains a wrapper to use a tcp client more easily.
 """
+
 from ..streaming.client import Client, Message
 from .generic_interface import GenericInterface
 from ..enums import (

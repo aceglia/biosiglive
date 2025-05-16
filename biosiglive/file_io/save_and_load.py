@@ -83,8 +83,10 @@ def save(data_dict, data_path, add_data=False, safe=True, compress=False):
         if safe and os.path.isfile(data_path):
             file_name = _safe_rename_file(data_path)
             data_path = data_path_object.parent / (file_name + data_path_object.suffix)
-            print(f"The file {data_path_object.name} already exists. The data will be saved in {data_path.name}."
-                  f" To avoid this message, remove the safe option.")
+            print(
+                f"The file {data_path_object.name} already exists. The data will be saved in {data_path.name}."
+                f" To avoid this message, remove the safe option."
+            )
         if not safe and os.path.isfile(data_path):
             os.remove(data_path)
 
@@ -193,7 +195,7 @@ def load(filename, number_of_line=None, merge=True):
 
     with_gzip = filename.endswith(".gzip")
     data = None if merge else []
-    limit = number_of_line if number_of_line else float('inf')
+    limit = number_of_line if number_of_line else float("inf")
 
     try:
         return _read_all_lines(filename, limit, data, with_gzip, merge)

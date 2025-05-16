@@ -48,4 +48,3 @@ def dic_merger(dic_to_merge: dict, new_dic: dict = None) -> dict:
             if key not in dic_to_merge.keys():
                 new_dic[key] = new_dic[key]
     return new_dic
-

@@ -1,6 +1,7 @@
 """
 This file contains the Parameter class that define the device and markers classes.
 """
+
 from math import ceil
 from ..enums import DeviceType, MarkerType, InverseKinematicsMethods, RealTimeProcessingMethod, OfflineProcessingMethod
 from ..processing.data_processing import RealTimeProcessing, OfflineProcessing, GenericProcessing
