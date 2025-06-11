@@ -5,7 +5,7 @@ This file contains all the plot functions to plot the data in live or offline.
 try:
     import pyqtgraph as pg
     import pyqtgraph.opengl as gl
-    from PyQt5.QtWidgets import QProgressBar
+    from PyQt6.QtWidgets import QProgressBar
 except ModuleNotFoundError:
     pass
 import numpy as np
