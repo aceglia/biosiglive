@@ -13,7 +13,7 @@ class GenericInterface:
     """
 
     def __init__(
-        self, ip: str = "127.0.0.1", system_rate: float = 100, interface_type: Union[InterfaceType, str] = None
+        self, ip: str = "127.0.0.1", system_rate: float = None, interface_type: Union[InterfaceType, str] = None
     ):
         """
         Initialize the generic class.
@@ -46,7 +46,7 @@ class GenericInterface:
         nb_channels: int,
         device_type: Union[DeviceType, str] = DeviceType.Emg,
         name: str = None,
-        rate: float = 2000,
+        rate: float = None,
         device_range: tuple = None,
         processing_method: Union[RealTimeProcessingMethod, OfflineProcessingMethod] = None,
         **kwargs,

@@ -39,10 +39,12 @@ class Param:
         self.name = name
         self.rate = rate
         self.system_rate = system_rate
-        self.sample = ceil(rate / self.system_rate)
+        self.sample = None if rate is None else ceil(rate / self.system_rate)
         self.range = None
         self.raw_data = []
-        self.data_window = data_window if data_window else int(rate)
+        if rate is not None:
+            self.data_window = int(self.data_window)
+        self.data_window = data_window if data_window else self.data_window
         self.new_data = None
 
     def append_data(self, new_data: np.ndarray):
@@ -72,7 +74,7 @@ class Device(Param):
         device_type: DeviceType = DeviceType.Emg,
         nb_channels: int = 1,
         name: str = None,
-        rate: float = 2000,
+        rate: float = None,
         system_rate: float = 100,
         channel_names: Union[list, str] = None,
     ):

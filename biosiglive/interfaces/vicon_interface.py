@@ -64,7 +64,9 @@ class ViconClient(GenericInterface):
         self.vicon_client.EnableMarkerData()
         self.vicon_client.EnableUnlabeledMarkerData()
         self.get_frame()
-        if self.system_rate != self.vicon_client.GetFrameRate():
+        if self.system_rate is None:
+            self.system_rate = self.vicon_client.GetFrameRate()
+        elif self.system_rate != self.vicon_client.GetFrameRate():
             raise ValueError(
                 f"Vicon system rate ({self.vicon_client.GetFrameRate()}) does not match the system rate "
                 f"({self.system_rate})."
@@ -76,7 +78,7 @@ class ViconClient(GenericInterface):
         device_type: Union[DeviceType, str] = DeviceType.Emg,
         data_buffer_size: int = None,
         name: str = None,
-        rate: float = 2000,
+        rate: float = None,
         device_range: tuple = None,
         processing_method: Union[RealTimeProcessingMethod, OfflineProcessingMethod] = None,
         **process_kwargs,

@@ -77,6 +77,7 @@ class LivePlot:
     def init(
         self,
         plot_windows: Union[int, list] = None,
+        create_app: bool = True,
         **kwargs,
     ):
         """
@@ -87,6 +88,8 @@ class LivePlot:
         plot_windows: Union[int, list]
             The number of frames ti plot. If is a list, the number of frames to plot for each subplot.
         """
+        self.create_app = create_app
+
         self.plot_buffer = [None] * self.nb_subplot
         if isinstance(plot_windows, int):
             plot_windows = [plot_windows] * self.nb_subplot
@@ -200,7 +203,8 @@ class LivePlot:
             The colors of the curves.
         """
         # --- Curve graph --- #
-        self.app = pg.mkQApp("Curve_plot")
+        if self.create_app:
+            self.app = pg.mkQApp("Curve_plot")
         pg.setConfigOption("background", "w")
         pg.setConfigOption("foreground", "k")
         self.win = pg.GraphicsLayoutWidget(show=True)
@@ -427,7 +431,9 @@ class LivePlot:
             self.ptr[i] += self.size_to_append[i] * 2
             self.curves[i].setData(data[i][0, :])
             # self.curves[i].setPos(self.ptr[i], 0)
-        self.app.processEvents()
+
+        if self.create_app:
+            self.app.processEvents()
 
     def _update_progress_bar(self, data: list):
         """
