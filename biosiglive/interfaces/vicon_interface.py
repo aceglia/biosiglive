@@ -250,6 +250,11 @@ class ViconClient(GenericInterface):
             return None
         return all_device_data
 
+    def get_timestamp(self, get_frame=False):
+        if get_frame:
+            self.get_frame()
+        return self.vicon_client.GetTimecode()
+
     def get_marker_set_data(
         self, subject_name: Union[str, list] = None, marker_names: Union[str, list] = None, get_frame: bool = True
     ):
