@@ -42,9 +42,9 @@ class Param:
         self.sample = None if rate is None else ceil(rate / self.system_rate)
         self.range = None
         self.raw_data = []
-        if rate is not None:
-            self.data_window = int(self.data_window)
-        self.data_window = data_window if data_window else self.data_window
+        # if rate is not None:
+        #     self.data_window = int(self.data_window)
+        self.data_window = data_window if data_window else int(self.system_rate * 2)  # default to 10 seconds
         self.new_data = None
 
     def append_data(self, new_data: np.ndarray):
