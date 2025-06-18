@@ -25,9 +25,9 @@ def dic_merger(dic_to_merge: dict, new_dic: dict = None) -> dict:
                 dic_to_merge[key] = [dic_to_merge[key]]
             if new_dic[key] is None:
                 new_dic[key] = [new_dic[key]]
-            if isinstance(new_dic[key], (int, float)):
+            if isinstance(new_dic[key], (int, float, str)):
                 new_dic[key] = [new_dic[key]]
-            if isinstance(dic_to_merge[key], (int, float)):
+            if isinstance(dic_to_merge[key], (int, float, str)):
                 dic_to_merge[key] = [dic_to_merge[key]]
             if isinstance(dic_to_merge[key], dict):
                 if len(new_dic[key].keys()) == 0:
@@ -41,6 +41,8 @@ def dic_merger(dic_to_merge: dict, new_dic: dict = None) -> dict:
                     new_dic[key] = np.array(new_dic[key])
                 if len(new_dic[key].shape) == 1:
                     new_dic[key] = new_dic[key][:, np.newaxis]
+                if len(dic_to_merge[key].shape) == 1:
+                    dic_to_merge[key] = dic_to_merge[key][:, np.newaxis]
                 new_dic[key] = np.append(dic_to_merge[key], new_dic[key], axis=-1)
             else:
                 raise ValueError("Type not supported")
