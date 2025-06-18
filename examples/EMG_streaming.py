@@ -30,7 +30,7 @@ from time import sleep, time
 
 
 if __name__ == "__main__":
-    try_offline = True
+    try_offline = False
 
     output_file_path = "trial_x.bio"
     if try_offline:
