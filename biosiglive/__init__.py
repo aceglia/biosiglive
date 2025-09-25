@@ -19,4 +19,7 @@ from .streaming.stream_data import StreamData
 
 from .enums import *
 
+from .interfaces.trigno_sdk.sdk_client import TrignoSDKClient
+
+
 __version__ = "2.0.0"

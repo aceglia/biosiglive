@@ -215,6 +215,11 @@ def _read_all_lines(filename, limit=float("inf"), data=(), with_gzip=False, merg
                 else:
                     data = dic_merger(data, data_tmp) if data else data_tmp
                 count += 1
-            except EOFError:
+            except Exception as e:
+                if str(e) == 'Ran out of input':
+                    print(f'{count} lines read from the file')
+                else:
+                    print(f"An error occurred while reading the file: {e} at line {count}")
                 break
+
     return data

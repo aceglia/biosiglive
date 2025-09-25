@@ -47,7 +47,6 @@ class GenericInterface:
         device_type: Union[DeviceType, str] = DeviceType.Emg,
         name: str = None,
         rate: float = None,
-        device_range: tuple = None,
         processing_method: Union[RealTimeProcessingMethod, OfflineProcessingMethod] = None,
         **kwargs,
     ):
@@ -76,7 +75,6 @@ class GenericInterface:
                 raise ValueError("The type of the device is not valid.")
             device_type = DeviceType(device_type)
         device_tmp = Device(device_type, nb_channels, name, rate, self.system_rate)
-        device_tmp.device_range = device_range if device_range else (0, nb_channels)
         device_tmp.interface = self.interface_type
         device_tmp.processing_method = processing_method
         device_tmp.processing_method_kwargs = kwargs

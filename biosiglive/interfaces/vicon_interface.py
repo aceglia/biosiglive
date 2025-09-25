@@ -71,7 +71,7 @@ class ViconClient(GenericInterface):
                 f"Vicon system rate ({self.vicon_client.GetFrameRate()}) does not match the system rate "
                 f"({self.system_rate})."
             )
-
+    #TODO: Remove rate and get it from the Vicon system.
     def add_device(
         self,
         nb_channels: int,
@@ -79,7 +79,6 @@ class ViconClient(GenericInterface):
         data_buffer_size: int = None,
         name: str = None,
         rate: float = None,
-        device_range: tuple = None,
         processing_method: Union[RealTimeProcessingMethod, OfflineProcessingMethod] = None,
         **process_kwargs,
     ):
@@ -106,7 +105,7 @@ class ViconClient(GenericInterface):
             Keyword arguments for the processing method.
         """
         device_tmp = self._add_device(
-            nb_channels, device_type, name, rate, device_range, processing_method, **process_kwargs
+            nb_channels, device_type, name, rate,  processing_method, **process_kwargs
         )
         device_tmp.interface = self.interface_type
         if self.vicon_client:

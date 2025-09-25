@@ -23,6 +23,7 @@ class DeviceType(Enum):
 
     Emg = "emg"
     Imu = "imu"
+    DelsysGogniometer = "delsys_gogniometer"
     Generic = "generic"
     ForcePlate = "force_plate"
 
