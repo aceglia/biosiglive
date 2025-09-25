@@ -1,7 +1,7 @@
 from biosiglive import TrignoSDKClient
 from biosiglive import LivePlot, PlotType
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     plot_curve = LivePlot(
         name="curve",
         rate=100,
@@ -14,6 +14,5 @@ if __name__ == '__main__':
     client = TrignoSDKClient()
     client.start_streaming()
     while True:
-        data, timestamp = client.all_queue['avanti_emg'].get()
+        data, timestamp = client.all_queue["avanti_emg"].get()
         plot_curve.update(data[0:1, :])
-    

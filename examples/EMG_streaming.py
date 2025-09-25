@@ -39,8 +39,7 @@ if __name__ == "__main__":
     if try_offline:
         interface = MyInterface(system_rate=100, data_path="abd.bio")
     else:
-        interface = PytrignoClient(ip="127.0.0.1") # or interface = ViconClient(ip="localhost", system_rate=100) 
-    
+        interface = PytrignoClient(ip="127.0.0.1")  # or interface = ViconClient(ip="localhost", system_rate=100)
 
     n_electrodes = 2
     muscle_names = [
@@ -71,7 +70,7 @@ if __name__ == "__main__":
 
     time_to_sleep = 1 / 100
     count = 0
-    file_path = 'data_test.bio'
+    file_path = "data_test.bio"
     while True:
         tic = time()
         raw_emg = interface.get_device_data(device_name="emg")

@@ -19,7 +19,7 @@ class GoniometerMode(Enum):
     MODE_376 = 376  # SIG x2 @296Hz, ACC 8g, GYRO 2000dps
     MODE_377 = 377  # SIG x2 @296Hz, ACC 16g, GYRO 2000dps
     MODE_378 = 378  # SIG x2 @370Hz, OR 32-bit @74Hz
-    MODE_026 = 26   # 1 HF Chan @1926Hz, 1 LF Chan @148Hz
+    MODE_026 = 26  # 1 HF Chan @1926Hz, 1 LF Chan @148Hz
     MODE_244 = 244  # SIG x2 @519Hz
 
     def description(self):
@@ -42,6 +42,6 @@ class GoniometerMode(Enum):
             GoniometerMode.MODE_377: "SIG x2 @296Hz, ACC 16g, GYRO 2000dps",
             GoniometerMode.MODE_378: "SIG x2 @370Hz, OR 32-bit @74Hz",
             GoniometerMode.MODE_026: "1 HF Chan @1926Hz, 1 LF Chan @148Hz",
-            GoniometerMode.MODE_244: "SIG x2 @519Hz"
+            GoniometerMode.MODE_244: "SIG x2 @519Hz",
         }
         return descriptions.get(self, "Unknown Mode")

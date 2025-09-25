@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class EMGAvantiMode(Enum):
     EMG_ACC_2G = 0
     EMG_ACC_4G = 1
@@ -133,7 +134,6 @@ class EMGAvantiMode(Enum):
     EMG_ACC_GYRO_74HZ_16G_2000DPS_4000HZ = 168
     EMG_ORIENTATION_74HZ_16BITS_4000HZ = 169
     EMG_ORIENTATION_74HZ_32BITS_3740HZ = 170
-
 
     @classmethod
     def has_value(cls, value):

@@ -166,7 +166,7 @@ class MskFunctions:
         elif method == InverseKinematicsMethods.BiorbdLeastSquare:
             ik = biorbd.InverseKinematics(self.model, markers)
             ik.solve("only_lm")
-            #ik.solve("trf")
+            # ik.solve("trf")
 
             q_recons = ik.q
             q_dot_recons = np.array([0] * ik.nb_q)[:, np.newaxis]

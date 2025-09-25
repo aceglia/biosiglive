@@ -2,6 +2,7 @@ import numpy as np
 from .generic_interface import GenericInterface
 from ..enums import DeviceType, InterfaceType, RealTimeProcessingMethod, OfflineProcessingMethod
 from typing import Union
+
 # try:
 #     import pytrigno
 # except ModuleNotFoundError:
@@ -76,9 +77,7 @@ class PytrignoClient(GenericInterface):
         **process_kwargs
             Keyword arguments for the processing method.
         """
-        device_tmp = self._add_device(
-            nb_channels, device_type, name, rate, processing_method, **process_kwargs
-        )
+        device_tmp = self._add_device(nb_channels, device_type, name, rate, processing_method, **process_kwargs)
         device_tmp.interface = self.interface_type
         device_tmp.data_windows = data_buffer_size
         self.devices.append(device_tmp)
@@ -86,7 +85,11 @@ class PytrignoClient(GenericInterface):
             if device_type not in [t.value for t in DeviceType]:
                 raise ValueError("The type of the device is not valid.")
             device_type = DeviceType(device_type)
-        if device_type != DeviceType.Emg and device_type != DeviceType.Imu and device_type != DeviceType.DelsysGogniometer:
+        if (
+            device_type != DeviceType.Emg
+            and device_type != DeviceType.Imu
+            and device_type != DeviceType.DelsysGogniometer
+        ):
             raise RuntimeError("Device type must be 'emg', 'delsys_gogniometer' or 'imu' with pytrigno.")
 
         if self.init_now:
@@ -133,11 +136,11 @@ class PytrignoClient(GenericInterface):
         for device in devices:
             if get_frame:
                 if device.device_type == DeviceType.Emg or device.device_type == DeviceType.DelsysGogniometer:
-                    queue_name = [key for key in self.sdk_client.all_queue if 'emg' in key][0]
+                    queue_name = [key for key in self.sdk_client.all_queue if "emg" in key][0]
                 elif device.device_type == DeviceType.Imu or device.device_type == DeviceType.DelsysGogniometer:
-                    queue_name = [key for key in self.sdk_client.all_queue if 'aux' in key][0]
+                    queue_name = [key for key in self.sdk_client.all_queue if "aux" in key][0]
                 device.new_data, _ = self.sdk_client.all_queue[queue_name].get()
-            
+
             if channel_idx:
                 device_data = np.ndarray((len(channel_idx), device.new_data.shape[1]))
                 for i, idx in enumerate(channel_idx):
@@ -162,11 +165,10 @@ class PytrignoClient(GenericInterface):
 
     def check_rate_devices(self):
         for device in self.devices:
-            if 'emg' in device.device_type.value:
+            if "emg" in device.device_type.value:
                 device.rate = self.sdk_client.get_emg_streaming_rate()
-            if 'imu' in device.device_type.value:
+            if "imu" in device.device_type.value:
                 device.rate = self.sdk_client.get_aux_streaming_rate()
-
 
     def init_client(self):
         """
@@ -176,7 +178,11 @@ class PytrignoClient(GenericInterface):
         device_types = np.unique(np.array([device.device_type.value for device in self.devices]))
         self.sdk_client.initialize_sensors(device_types)
         self.check_rate_devices()
-        if self.sdk_client._threads_to_run['avanti_emg'] and self.sdk_client._threads_to_run['legacy_emg']:
-            raise(RuntimeError('Both avanti and legacy emg type are paired. '
-            'It is not possible to use both at the same time in biosiglive for now.'))
+        if self.sdk_client._threads_to_run["avanti_emg"] and self.sdk_client._threads_to_run["legacy_emg"]:
+            raise (
+                RuntimeError(
+                    "Both avanti and legacy emg type are paired. "
+                    "It is not possible to use both at the same time in biosiglive for now."
+                )
+            )
         self.sdk_client.start_streaming()
