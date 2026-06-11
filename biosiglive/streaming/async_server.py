@@ -30,7 +30,7 @@ class AsyncTCPServer:
     def init_buffer(self, n_channels, dt=None):
         if dt is not None:
             self.dt = dt
-        self.buffer = CircularBuffer(n_channels, self.buffer_length, dtype=np.float64, dt = self.dt)
+        self.buffer = CircularBuffer(n_channels, self.buffer_length, dtype=np.float64, dt=self.dt)
         # self.buffer = RollingBuffer(n_channels, self.buffer_length)
 
     async def start(self, task: callable = None) -> None:
@@ -108,7 +108,7 @@ class AsyncTCPServer:
         """
         is_time = await reader.readexactly(1)
         is_time = struct.unpack("!?", is_time)[0]
-        
+
         header = await reader.readexactly(8)
         size, ndim = struct.unpack("!II", header)
 
@@ -119,7 +119,7 @@ class AsyncTCPServer:
         array = np.frombuffer(payload, dtype=np.float64).reshape(shape)
 
         if is_time:
-            t = array[0, :] 
+            t = array[0, :]
             array = array[1:, :]
             if self.dt is None:
                 self.dt = t[1] - t[0]
@@ -145,7 +145,7 @@ class AsyncTCPServer:
             self.server.close()
             await self.server.wait_closed()
             # print("Server stopped")
-    
+
     async def get_data(self) -> tuple:
         """
         Get the current data and timestamps in the buffer.

@@ -36,9 +36,7 @@ class AsyncTCPClient:
         None
         """
         try:
-            _, self.writer = await asyncio.wait_for(
-                asyncio.open_connection(self.host, self.port), timeout=self.timeout
-            )
+            _, self.writer = await asyncio.wait_for(asyncio.open_connection(self.host, self.port), timeout=self.timeout)
         except asyncio.TimeoutError:
             print(f"Connection to {self.host}:{self.port} timed out after {self.timeout} seconds.")
 
@@ -63,7 +61,7 @@ class AsyncTCPClient:
         if sample_time is not None:
             if sample_time.dtype != np.float64:
                 sample_time = sample_time.astype(np.float64)
-            if len(sample_time)!= array.shape[-1]:
+            if len(sample_time) != array.shape[-1]:
                 return
             array = np.vstack((sample_time, array))
 

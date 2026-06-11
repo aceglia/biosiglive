@@ -9,6 +9,7 @@ except ModuleNotFoundError:
     pass
 
 import time
+
 try:
     from PyQt5.QtCore import QTimer
     from PyQt5.QtWidgets import QMainWindow, QApplication
@@ -45,6 +46,7 @@ pyqt_color_list = [
     (23, 190, 207),  # cyan
 ]
 
+
 class LivePlot:
     def __init__(
         self,
@@ -80,7 +82,7 @@ class LivePlot:
 
         self.rate = rate
 
-# 
+        #
         # self.app = pg.mkQApp("Curve_plot")
         # self.app = QApplication([])
 
@@ -140,7 +142,7 @@ class LivePlot:
 
         else:
             raise ValueError(f"The plot type ({self.plot_type}) is not supported.")
-        
+
         # self.timer.start(int((1/self.rate) * 1000))
         self.win.show()
         # self.app.exec()
@@ -149,7 +151,7 @@ class LivePlot:
 
         if not self.once_update:
             return
-        
+
         if self.plot_type == PlotType.ProgressBar:
             self._update_progress_bar(self.get_unflatten(self.plot_buffer.get()))
         elif self.plot_type == PlotType.Curve:
@@ -209,7 +211,6 @@ class LivePlot:
             self.once_update = True
             self._update_plot(**kwargs)
             self.last_plot = time.time()
-
 
     def get_flatten(self, data):
         sizes = np.array([len(d) for d in data])

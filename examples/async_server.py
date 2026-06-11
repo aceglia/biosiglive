@@ -7,16 +7,18 @@ import threading
 import time
 
 if __name__ == "__main__":
-    server = AsyncTCPServer('127.0.0.1', 12345)
+    server = AsyncTCPServer("127.0.0.1", 12345)
+
     def task(data, t):
         pass
+
     threading.Thread(target=asyncio.run, args=(server.start(task=task),)).start()
     data_buffer = CircularBuffer(10, 1000)
 
     last_idx = None
     while True:
         time.sleep(0.05)
-        if server.buffer is None: 
+        if server.buffer is None:
             continue
         data, t = server.buffer.get_view()
         current_buff_idx = server.buffer.total_samples
