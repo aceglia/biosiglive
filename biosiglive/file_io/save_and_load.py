@@ -217,7 +217,8 @@ def _read_all_lines(filename, limit=float("inf"), data=(), with_gzip=False, merg
                 count += 1
             except Exception as e:
                 if str(e) == "Ran out of input":
-                    print(f"{count} lines read from the file")
+                    # print(f"{count} lines read from the file")
+                    pass
                 else:
                     print(f"An error occurred while reading the file: {e} at line {count}")
                 break

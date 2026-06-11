@@ -16,6 +16,8 @@ from .processing.compute_mvc import ComputeMvc
 from .streaming.client import Client, Message
 from .streaming.server import Server
 from .streaming.stream_data import StreamData
+from .streaming.async_client import AsyncTCPClient
+from .streaming.async_server import AsyncTCPServer
 
 from .enums import *
 
