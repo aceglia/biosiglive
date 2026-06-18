@@ -91,7 +91,7 @@ class MskFunctions:
         custom_function: callable = None,
         initial_guess: Union[np.ndarray, list] = None,
         qdot_from_finite_difference: bool = False,
-        noise_factor=1e-8,
+        noise_factor=1e-10,
         error_factor=1e-5,
         **kwargs,
     ) -> tuple:
@@ -147,15 +147,13 @@ class MskFunctions:
                 if len(initial_guess) != 3:
                     raise RuntimeError("Initial guess must be of len 3 (angle, velocity, acceleration).")
                 self.kalman.setInitState(initial_guess[0], initial_guess[1], initial_guess[2])
-            markers_over_frames = []
+
             q = biorbd.GeneralizedCoordinates(self.model)
             q_dot = biorbd.GeneralizedVelocity(self.model)
             qd_dot = biorbd.GeneralizedAcceleration(self.model)
-
             q_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
             q_dot_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
             q_ddot_recons = np.zeros((self.model.nbQ(), markers.shape[2]))
-
             for i in range(markers.shape[2]):
                 self.kalman.reconstructFrame(
                     self.model, [biorbd.NodeSegment(m) for m in markers[:, :, i].T], q, q_dot, qd_dot

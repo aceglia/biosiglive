@@ -14,8 +14,8 @@ class Param:
     def __init__(
         self,
         nb_channels: int,
+        rate: float, 
         name: str = None,
-        rate: float = None,
         system_rate: float = 100,
         data_window: int = None,
     ):
@@ -42,9 +42,7 @@ class Param:
         self.sample = None if rate is None else ceil(rate / self.system_rate)
         self.range = None
         self.raw_data = []
-        # if rate is not None:
-        #     self.data_window = int(self.data_window)
-        self.data_window = data_window if data_window else int(self.rate * 2)  # default to 10 seconds
+        self.data_window = data_window if data_window else int(self.rate * 2)
         self.new_data = None
 
     def append_data(self, new_data: np.ndarray):
@@ -97,7 +95,7 @@ class Device(Param):
         channel_names: list
             Name of the channels of the device.
         """
-        super().__init__(nb_channels, name, rate, system_rate)
+        super().__init__(nb_channels, rate, name, system_rate)
         if isinstance(channel_names, str):
             channel_names = [channel_names]
         if channel_names:
@@ -192,7 +190,7 @@ class Device(Param):
         elif self.processing_method == RealTimeProcessingMethod.Custom:
             self.processing_function = RealTimeProcessing(self.rate, self.processing_window).custom_processing
 
-    def _check_if_has_changed(self, method: GenericProcessing(), kwargs: dict) -> bool:
+    def _check_if_has_changed(self, method: GenericProcessing, kwargs: dict) -> bool:
         """
         Check if the processing method has changed.
 
@@ -270,7 +268,7 @@ class MarkerSet(Param):
             Unit of the marker set.
         """
         marker_type = MarkerType.Unlabeled if unlabeled else MarkerType.Labeled
-        super(MarkerSet, self).__init__(nb_channels, name, rate, system_rate)
+        super(MarkerSet, self).__init__(nb_channels, rate, name, system_rate)
         if isinstance(marker_names, str):
             marker_names = [marker_names]
         if marker_names:

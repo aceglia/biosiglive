@@ -40,10 +40,12 @@ class PytrignoClient(GenericInterface):
         self.is_frame = False
         self.is_initialized = False
         self.init_now = init_now
+        self.sdk_client = None
         # if system_rate != 74.074074:
         #     raise ValueError("System rate can not be changed for pytrigno interface for now." \
         #     " 74 Hz mean that data will refresh every 13.5 ms but the EMG and IMU data are sampled at their own rate.")
-        self.sdk_client = TrignoSDKClient(host=ip, init_sensors=False, stream_rate=system_rate)
+        if self.init_now:
+            self.sdk_client = TrignoSDKClient(host=ip, init_sensors=False, stream_rate=system_rate)
 
     def add_device(
         self,
