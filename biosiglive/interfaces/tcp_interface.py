@@ -77,9 +77,7 @@ class TcpClient(GenericInterface):
         process_kwargs: dict
             Keyword arguments for the processing method.
         """
-        device_tmp = self._add_device(
-            nb_channels, device_type, name, rate, processing_method, **process_kwargs
-        )
+        device_tmp = self._add_device(nb_channels, device_type, name, rate, processing_method, **process_kwargs)
         device_tmp.interface = self.interface_type
         self.devices.append(device_tmp)
         self.device_cmd_names.append(command_name)

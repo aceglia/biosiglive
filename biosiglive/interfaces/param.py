@@ -14,7 +14,7 @@ class Param:
     def __init__(
         self,
         nb_channels: int,
-        rate: float, 
+        rate: float,
         name: str = None,
         system_rate: float = 100,
         data_window: int = None,
