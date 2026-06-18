@@ -24,4 +24,4 @@ from .enums import *
 from .interfaces.trigno_sdk.sdk_client import TrignoSDKClient
 
 
-__version__ = "2.0.0"
+__version__ = "2.0.4"
